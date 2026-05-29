@@ -30,32 +30,27 @@
   function tick() {
     const now = new Date();
     const hour = now.getHours();
-    let greeting = 'Good morning';
 
-    if (hour >= 12 && hour < 18) greeting = 'Good afternoon';
-    else if (hour >= 18 && hour < 22) greeting = 'Good evening';
-    else if (hour >= 22 || hour < 5) greeting = 'Good night';
+    let greeting;
+    if (hour < 5 || hour >= 22) greeting = i18n.t('greeting_night');
+    else if (hour >= 18) greeting = i18n.t('greeting_evening');
+    else if (hour >= 12) greeting = i18n.t('greeting_afternoon');
+    else greeting = i18n.t('greeting_morning');
 
-    // Init i18n if present
-    if (typeof i18n !== 'undefined' && i18n.t) {
-      try {
-        if (hour < 5 || hour >= 22) greeting = i18n.t('greeting_night');
-        else if (hour >= 18) greeting = i18n.t('greeting_evening');
-        else if (hour >= 12) greeting = i18n.t('greeting_afternoon');
-        else greeting = i18n.t('greeting_morning');
-      } catch(e) {}
-    }
-
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    const dateStr = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const lang = i18n.currentLanguage || 'en';
+    const timeStr = now.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const dateStr = now.toLocaleDateString(lang, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     timeDisplay.textContent = timeStr;
     dateDisplay.textContent = dateStr;
     greetingDisplay.textContent = greeting;
     topbarClock.textContent = timeStr;
-    document.title = 'MAGI :: ' + greeting.toUpperCase();
+    document.title = i18n.t('app_title') + ' :: ' + greeting.toUpperCase();
   }
 
-  setInterval(tick, 1000);
-  tick();
+  // Init i18n, then start clock
+  i18n.init().then(() => {
+    tick();
+    setInterval(tick, 1000);
+  });
 })();

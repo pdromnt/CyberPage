@@ -331,9 +331,42 @@
     return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  // ── Language ─────────────────────────────────────────────
+
+  async function populateLanguages() {
+    const langSelect = document.getElementById('language');
+    if (!langSelect) return;
+
+    try {
+      const response = await fetch('i18n/languages.json');
+      const languages = await response.json();
+      langSelect.innerHTML = '';
+      languages.forEach(lang => {
+        const option = document.createElement('option');
+        option.value = lang.code;
+        option.textContent = lang.name;
+        langSelect.appendChild(option);
+      });
+
+      // Restore saved language
+      chrome.storage.sync.get({ language: 'en' }, function (result) {
+        langSelect.value = result.language || 'en';
+      });
+    } catch (e) {
+      console.error('Failed to load languages:', e);
+    }
+  }
+
+  function saveLanguage() {
+    const langSelect = document.getElementById('language');
+    if (!langSelect) return;
+    chrome.storage.sync.set({ language: langSelect.value });
+  }
+
   // ── Save all ─────────────────────────────────────────────
 
   function saveAll() {
+    saveLanguage();
     saveWeatherSettings();
     collectRssFeeds();
     saveQuickLinks();
@@ -353,6 +386,7 @@
   });
 
   // Load everything
+  populateLanguages();
   loadWeatherSettings();
   loadRssFeeds();
   loadQuickLinks();
