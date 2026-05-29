@@ -20,30 +20,46 @@
     '50d': '🌫', '50n': '🌫',
   };
 
+  function tryGeocode(queries, idx, apiKey, resolve) {
+    if (idx >= queries.length) {
+      resolve({ error: 'GEO_NOT_FOUND: ' + queries[0] });
+      return;
+    }
+
+    const q = queries[idx];
+    fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=1&appid=${apiKey}`)
+      .then(r => r.json().then(data => ({ status: r.status, data })))
+      .then((response) => {
+        if (response.status !== 200) {
+          tryGeocode(queries, idx + 1, apiKey, resolve);
+        } else if (response.data && response.data.length > 0) {
+          resolve({ lat: response.data[0].lat, lon: response.data[0].lon, name: queries[0] });
+        } else {
+          tryGeocode(queries, idx + 1, apiKey, resolve);
+        }
+      })
+      .catch(() => tryGeocode(queries, idx + 1, apiKey, resolve));
+  }
+
   function resolveLocation(cfg) {
     return new Promise((resolve) => {
-      // User-entered location via settings
       if (cfg.location) {
         const apiKey = cfg.apiKey;
         if (!apiKey) { resolve({ error: 'NO_API_KEY' }); return; }
 
-        fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cfg.location)}&limit=1&appid=${apiKey}`)
-          .then(r => r.json().then(data => ({ status: r.status, data })))
-          .then((response) => {
-            if (response.status !== 200) {
-              resolve({ error: 'GEO_HTTP_' + response.status });
-            } else if (response.data && response.data.length > 0) {
-              resolve({ lat: response.data[0].lat, lon: response.data[0].lon, name: cfg.location });
-            } else {
-              resolve({ error: 'GEO_NOT_FOUND' });
-            }
-          })
-          .catch(err => {
-            console.error('Geo fetch error:', err);
-            resolve({ error: 'GEO_NETWORK' });
-          });
+        // Build fallback queries: "Recife, PE" → try "Recife", then "Recife,BR"
+        const raw = cfg.location.trim();
+        const queries = [raw];
+        const commaIdx = raw.indexOf(',');
+        if (commaIdx > 0) {
+          queries.push(raw.substring(0, commaIdx).trim());
+        }
+        if (!raw.match(/,\s*[A-Z]{2}$/)) {
+          queries.push((commaIdx > 0 ? raw.substring(0, commaIdx).trim() : raw) + ',BR');
+        }
+
+        tryGeocode(queries, 0, apiKey, resolve);
       } else {
-        // Browser geolocation
         if (!navigator.geolocation) { resolve({ error: 'NO_GEOLOCATION' }); return; }
         navigator.geolocation.getCurrentPosition(
           pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, name: null }),
@@ -73,15 +89,13 @@
 
       const loc = await resolveLocation(cfg);
       if (loc.error) {
-        weatherLoading.textContent = '▹ LOCATION: ' + loc.error;
-        console.warn('CyberPage weather: resolveLocation failed', loc.error, 'cfg:', cfg.location);
+        weatherLoading.textContent = '▹ ' + loc.error;
         return;
       }
 
       const units = cfg.units || 'metric';
       const lang = (typeof i18n !== 'undefined' && i18n.currentLanguage) ? i18n.currentLanguage : 'en';
 
-      // Check cache
       const cacheKey = `weather_${loc.lat.toFixed(2)}_${loc.lon.toFixed(2)}_${units}`;
       chrome.storage.local.get([cacheKey], function (cacheResult) {
         const cache = cacheResult[cacheKey];
@@ -135,7 +149,6 @@
     weatherWidget.classList.add('active');
   }
 
-  // Listen for storage changes (settings updates)
   chrome.storage.onChanged.addListener(function (changes, namespace) {
     if (namespace === 'sync' && changes.weather) {
       fetchWeather();
