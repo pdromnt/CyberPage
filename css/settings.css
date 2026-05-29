@@ -1,0 +1,351 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg: #050a08;
+  --panel-bg: #0a1210;
+  --text: #33ff88;
+  --text-dim: #1a7a40;
+  --text-alt: #ff9933;
+  --accent: #33ff88;
+  --accent-alt: #ff9933;
+  --red: #ff3344;
+  --red-dim: #66111a;
+  --amber: #ffaa22;
+  --border: #1a3328;
+  --font: 'Share Tech Mono', 'Courier New', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+/* ── Layout ──────────────────────────────────────── */
+.layout {
+  display: flex;
+  height: 100%;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.sidebar h1 {
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: var(--accent-alt);
+  text-shadow: 0 0 8px var(--accent-alt);
+  margin-bottom: 24px;
+}
+
+.sidebar nav ul {
+  list-style: none;
+}
+
+.sidebar nav li {
+  margin-bottom: 4px;
+}
+
+.sidebar nav a {
+  display: block;
+  padding: 8px 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 2px;
+  transition: color 0.15s, background 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.sidebar nav a:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  border-left-color: var(--accent);
+}
+
+.main-content {
+  flex: 1;
+  padding: 30px 40px 120px;
+  overflow-y: auto;
+  max-width: 800px;
+}
+
+section {
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+section h2 {
+  font-size: 16px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-shadow: 0 0 6px var(--accent);
+  margin-bottom: 8px;
+}
+
+section p {
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.hint {
+  color: var(--text-dim);
+  font-size: 10px;
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+
+/* ── Inputs ──────────────────────────────────────── */
+.input-group {
+  margin: 16px 0;
+}
+
+.input-information {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--accent-alt);
+  margin-bottom: 6px;
+}
+
+input[type="text"],
+input[type="file"] {
+  width: 100%;
+  padding: 10px 14px;
+  background: #030604;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(51,255,136,0.1);
+}
+
+input[type="text"]::placeholder {
+  color: #0a3020;
+  letter-spacing: 1px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+  width: auto;
+  margin-right: 8px;
+}
+
+.api-link {
+  color: var(--text-dim);
+  font-size: 10px;
+  text-decoration: none;
+  letter-spacing: 1px;
+}
+
+.api-link:hover {
+  color: var(--accent);
+}
+
+/* ── Flex helpers ────────────────────────────────── */
+.flex-center {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.flex-gap {
+  display: flex;
+  gap: 20px;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.mt-10 {
+  margin-top: 10px;
+}
+
+.width-auto {
+  width: auto !important;
+}
+
+/* ── Buttons ─────────────────────────────────────── */
+button {
+  padding: 8px 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 8px rgba(51,255,136,0.1);
+}
+
+/* ── RSS feed list ───────────────────────────────── */
+.rss-feed-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rss-feed-item input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.rss-feed-item .url-input {
+  flex: 2;
+}
+
+.rss-feed-item .label-input {
+  flex: 1;
+}
+
+.remove-btn {
+  padding: 4px 10px;
+  background: none;
+  border-color: var(--red-dim);
+  color: var(--red-dim);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.remove-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* ── Quick links ─────────────────────────────────── */
+.site {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  background: color-mix(in srgb, var(--panel-bg) 50%, var(--bg));
+  border: 1px solid var(--border);
+}
+
+.site label {
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+/* ── Bookmarks ───────────────────────────────────── */
+.bookmark-options ul {
+  list-style: none;
+}
+
+.bookmark-option-category {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bookmark-option-category>ul>li {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.bookmark-option-category>ul>li:first-child {
+  margin-bottom: 12px;
+}
+
+.bookmark-option-category input {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+/* ── Save bar ────────────────────────────────────── */
+.save-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 40px;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--border);
+}
+
+.save-bar button {
+  padding: 10px 24px;
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel-bg));
+  border-color: var(--accent);
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.save-bar button:hover {
+  background: color-mix(in srgb, var(--accent) 30%, var(--panel-bg));
+  box-shadow: 0 0 12px rgba(51,255,136,0.2);
+}
+
+#status {
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+#status.saved {
+  color: var(--accent);
+}
+
+#status.error {
+  color: var(--red);
+}
+
+.spacer-60 {
+  height: 60px;
+}

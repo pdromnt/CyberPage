@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SETTINGS · CYBERPAGE</title>
+  <link rel="stylesheet" href="css/settings.css">
+</head>
+
+<body class="settings-body">
+  <div class="layout">
+    <aside class="sidebar">
+      <h1>CYBERPAGE</h1>
+      <nav>
+        <ul>
+          <li><a href="#weather">WEATHER</a></li>
+          <li><a href="#rss">RSS FEEDS</a></li>
+          <li><a href="#quick-links">QUICK LINKS</a></li>
+          <li><a href="#bookmarks">BOOKMARKS</a></li>
+          <li><a href="#data">DATA</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+
+      <!-- Weather -->
+      <section id="weather">
+        <h2>WEATHER</h2>
+        <p>Configure weather display and API key.</p>
+
+        <div class="input-group">
+          <div class="flex-center">
+            <input id="display-weather" name="display-weather" type="checkbox">
+            <label for="display-weather">Show weather widget</label>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-information">Units</label>
+          <div class="flex-gap">
+            <div class="flex-center">
+              <input type="radio" id="celsius" name="unit" value="metric">
+              <label for="celsius">Celsius</label>
+            </div>
+            <div class="flex-center">
+              <input type="radio" id="fahrenheit" name="unit" value="imperial">
+              <label for="fahrenheit">Fahrenheit</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-information" for="weather-location">Location (optional)</label>
+          <input type="text" id="weather-location" name="weather-location" placeholder="City name, e.g. Recife, BR">
+          <p class="hint">Leave empty to use browser geolocation.</p>
+        </div>
+
+        <div class="input-group">
+          <label class="input-information" for="openweather-key">
+            OpenWeatherMap API Key
+            <a href="https://openweathermap.org/api" target="_blank" class="api-link">(Get Key)</a>
+          </label>
+          <input type="text" id="openweather-key" placeholder="Enter API Key">
+        </div>
+      </section>
+
+      <!-- RSS -->
+      <section id="rss">
+        <h2>RSS FEEDS</h2>
+        <p>Add RSS/Atom feed URLs to display in the right panel.</p>
+
+        <div class="rss-list" id="rss-feeds-list"></div>
+        <button type="button" id="add-rss-feed">+ ADD FEED</button>
+      </section>
+
+      <!-- Quick Links -->
+      <section id="quick-links">
+        <h2>QUICK LINKS</h2>
+        <p>Select sites to show below the search bar.</p>
+        <div class="quick-links-container"></div>
+      </section>
+
+      <!-- Bookmarks -->
+      <section id="bookmarks">
+        <h2>BOOKMARKS</h2>
+        <p>Manage categorized bookmarks. (Max 5 categories, 10 links each.)</p>
+        <div class="bookmark-options">
+          <ul id="bookmarks-list"></ul>
+          <button type="button" id="add-category">+ ADD CATEGORY</button>
+        </div>
+      </section>
+
+      <!-- Data Management -->
+      <section id="data">
+        <h2>DATA MANAGEMENT</h2>
+        <p>Export or import settings and bookmarks.</p>
+
+        <div class="flex-gap wrap">
+          <button type="button" id="export-all">Export Settings (JSON)</button>
+        </div>
+        <div class="input-group mt-10">
+          <label class="input-information" for="import-all-file">Import Settings</label>
+          <input type="file" id="import-all-file" accept=".json">
+        </div>
+      </section>
+
+      <div class="spacer-60"></div>
+    </main>
+
+    <div class="save-bar">
+      <div id="status"></div>
+      <button type="button" id="save">SAVE CHANGES</button>
+    </div>
+  </div>
+
+  <script src="js/settings.js"></script>
+</body>
+
+</html>

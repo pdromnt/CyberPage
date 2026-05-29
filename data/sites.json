@@ -1,0 +1,356 @@
+[
+    {
+        "id": "500px",
+        "name": "500px",
+        "icon": "lni-500px",
+        "url": "https://500px.com"
+    },
+    {
+        "id": "amazon",
+        "name": "Amazon",
+        "icon": "lni-amazon",
+        "url": "https://amazon.com"
+    },
+    {
+        "id": "apple-music",
+        "name": "Apple Music",
+        "icon": "lni-apple-music",
+        "url": "https://music.apple.com"
+    },
+    {
+        "id": "bandcamp",
+        "name": "Bandcamp",
+        "icon": "lni-music",
+        "url": "https://bandcamp.com"
+    },
+    {
+        "id": "behance",
+        "name": "Behance",
+        "icon": "lni-behance",
+        "url": "https://behance.net"
+    },
+    {
+        "id": "bitbucket",
+        "name": "Bitbucket",
+        "icon": "lni-bitbucket",
+        "url": "https://bitbucket.com"
+    },
+    {
+        "id": "chatgpt",
+        "name": "ChatGPT",
+        "icon": "lni-bubble",
+        "url": "https://chatgpt.com"
+    },
+    {
+        "id": "clickup",
+        "name": "ClickUp",
+        "icon": "lni-network",
+        "url": "https://app.clickup.com"
+    },
+    {
+        "id": "codepen",
+        "name": "Codepen",
+        "icon": "lni-codepen",
+        "url": "https://codepen.io"
+    },
+    {
+        "id": "deviantart",
+        "name": "Deviantart",
+        "icon": "lni-image",
+        "url": "https://deviantart.com"
+    },
+    {
+        "id": "discord",
+        "name": "Discord",
+        "icon": "lni-discord",
+        "url": "https://discord.com"
+    },
+    {
+        "id": "dropbox",
+        "name": "Dropbox",
+        "icon": "lni-dropbox",
+        "url": "https://dropbox.com"
+    },
+    {
+        "id": "etsy",
+        "name": "Etsy",
+        "icon": "lni-website",
+        "url": "https://etsy.com"
+    },
+    {
+        "id": "facebook",
+        "name": "Facebook",
+        "icon": "lni-facebook",
+        "url": "https://facebook.com"
+    },
+    {
+        "id": "figma",
+        "name": "Figma",
+        "icon": "lni-figma",
+        "url": "https://figma.com"
+    },
+    {
+        "id": "flickr",
+        "name": "Flickr",
+        "icon": "lni-flickr",
+        "url": "https://flickr.com"
+    },
+    {
+        "id": "free-code-camp",
+        "name": "Free Code Camp",
+        "icon": "lni-code",
+        "url": "https://freecodecamp.com"
+    },
+    {
+        "id": "gemini",
+        "name": "Gemini",
+        "icon": "lni-bulb",
+        "url": "https://gemini.google.com"
+    },
+    {
+        "id": "github",
+        "name": "Github",
+        "icon": "lni-github",
+        "url": "https://github.com"
+    },
+    {
+        "id": "gmail",
+        "name": "Gmail",
+        "icon": "lni-envelope",
+        "url": "https://gmail.com"
+    },
+    {
+        "id": "google",
+        "name": "Google",
+        "icon": "lni-google",
+        "url": "https://google.com"
+    },
+    {
+        "id": "google-docs",
+        "name": "Google Docs",
+        "icon": "lni-files",
+        "url": "https://docs.google.com"
+    },
+    {
+        "id": "google-drive",
+        "name": "Google Drive",
+        "icon": "lni-google-drive",
+        "url": "https://drive.google.com"
+    },
+    {
+        "id": "hacker-news",
+        "name": "Hacker News",
+        "icon": "lni-hacker-news",
+        "url": "https://news.ycombinator.com"
+    },
+    {
+        "id": "imdb",
+        "name": "Imdb",
+        "icon": "lni-imdb",
+        "url": "https://imdb.com"
+    },
+    {
+        "id": "instagram",
+        "name": "Instagram",
+        "icon": "lni-instagram",
+        "url": "https://instagram.com"
+    },
+    {
+        "id": "jsfiddle",
+        "name": "Jsfiddle",
+        "icon": "lni-jsfiddle",
+        "url": "https://jsfiddle.net"
+    },
+    {
+        "id": "lastfm",
+        "name": "Lastfm",
+        "icon": "lni-website",
+        "url": "https://last.fm"
+    },
+    {
+        "id": "linkedin",
+        "name": "Linkedin",
+        "icon": "lni-linkedin",
+        "url": "https://linkedin.com"
+    },
+    {
+        "id": "medium",
+        "name": "Medium",
+        "icon": "lni-medium",
+        "url": "https://medium.com"
+    },
+    {
+        "id": "microsoft-copilot",
+        "name": "Microsoft Copilot",
+        "icon": "lni-microsoft",
+        "url": "https://copilot.microsoft.com"
+    },
+    {
+        "id": "notion",
+        "name": "Notion",
+        "icon": "lni-notion",
+        "url": "https://notion.so"
+    },
+    {
+        "id": "onedrive",
+        "name": "OneDrive",
+        "icon": "lni-cloud",
+        "url": "https://onedrive.live.com"
+    },
+    {
+        "id": "pinterest",
+        "name": "Pinterest",
+        "icon": "lni-pinterest",
+        "url": "https://pinterest.com"
+    },
+    {
+        "id": "product-hunt",
+        "name": "Product Hunt",
+        "icon": "lni-producthunt",
+        "url": "https://producthunt.com"
+    },
+    {
+        "id": "quora",
+        "name": "Quora",
+        "icon": "lni-quora",
+        "url": "https://quora.com"
+    },
+    {
+        "id": "reddit",
+        "name": "Reddit",
+        "icon": "lni-reddit",
+        "url": "https://reddit.com"
+    },
+    {
+        "id": "slack",
+        "name": "Slack",
+        "icon": "lni-slack",
+        "url": "https://slack.com"
+    },
+    {
+        "id": "soundcloud",
+        "name": "Soundcloud",
+        "icon": "lni-soundcloud",
+        "url": "https://soundcloud.com"
+    },
+    {
+        "id": "spotify",
+        "name": "Spotify",
+        "icon": "lni-spotify",
+        "url": "https://spotify.com"
+    },
+    {
+        "id": "stack-exchange",
+        "name": "Stack Exchange",
+        "icon": "lni-website",
+        "url": "https://stackexchange.com"
+    },
+    {
+        "id": "stack-overflow",
+        "name": "Stack Overflow",
+        "icon": "lni-stackoverflow",
+        "url": "https://stackoverflow.com"
+    },
+    {
+        "id": "steam",
+        "name": "Steam",
+        "icon": "lni-steam",
+        "url": "https://store.steampowered.com"
+    },
+    {
+        "id": "telegram",
+        "name": "Telegram",
+        "icon": "lni-telegram",
+        "url": "https://telegram.org"
+    },
+    {
+        "id": "tiktok",
+        "name": "TikTok",
+        "icon": "lni-tiktok",
+        "url": "https://tiktok.com"
+    },
+    {
+        "id": "trello",
+        "name": "Trello",
+        "icon": "lni-trello",
+        "url": "https://trello.com"
+    },
+    {
+        "id": "tripadvisor",
+        "name": "Tripadvisor",
+        "icon": "lni-travel",
+        "url": "https://tripadvisor.com"
+    },
+    {
+        "id": "tumblr",
+        "name": "Tumblr",
+        "icon": "lni-tumblr",
+        "url": "https://tumblr.com"
+    },
+    {
+        "id": "twitch",
+        "name": "Twitch",
+        "icon": "lni-twitch",
+        "url": "https://twitch.tv"
+    },
+    {
+        "id": "twitter",
+        "name": "Twitter",
+        "icon": "lni-twitter",
+        "url": "https://twitter.com"
+    },
+    {
+        "id": "vimeo",
+        "name": "Vimeo",
+        "icon": "lni-vimeo",
+        "url": "https://vimeo.com"
+    },
+    {
+        "id": "whatsapp",
+        "name": "WhatsApp",
+        "icon": "lni-whatsapp",
+        "url": "https://whatsapp.com"
+    },
+    {
+        "id": "wikipedia",
+        "name": "Wikipedia",
+        "icon": "lni-website",
+        "url": "https://wikipedia.org"
+    },
+    {
+        "id": "wordpress",
+        "name": "Wordpress",
+        "icon": "lni-wordpress",
+        "url": "https://wordpress.com"
+    },
+    {
+        "id": "y-combinator",
+        "name": "YCombinator",
+        "icon": "lni-ycombinator",
+        "url": "https://ycombinator.com"
+    },
+    {
+        "id": "yahoo",
+        "name": "Yahoo",
+        "icon": "lni-yahoo",
+        "url": "https://yahoo.com"
+    },
+    {
+        "id": "youtube",
+        "name": "Youtube",
+        "icon": "lni-youtube",
+        "url": "https://youtube.com"
+    },
+    {
+        "id": "zoom",
+        "name": "Zoom",
+        "icon": "lni-zoom",
+        "url": "https://zoom.us"
+    },
+    {
+        "id": "digg",
+        "name": "Digg",
+        "icon": "lni-website",
+        "url": "https://digg.com"
+    }
+]

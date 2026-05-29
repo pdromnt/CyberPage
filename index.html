@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAGI INTERFACE</title>
+
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+
+<body>
+  <div class="crt-overlay"></div>
+  <div class="crt-vignette"></div>
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <div class="topbar">
+    <div class="topbar-title">CYBERPAGE · MAGI INTERFACE</div>
+    <div class="topbar-clock" id="topbar-clock">--:--:--</div>
+  </div>
+
+  <!-- ── Main layout ─────────────────────────────────── -->
+  <div class="layout">
+
+    <!-- Left panel: Weather -->
+    <div class="side-panel left">
+      <div class="section-header">▸ MELCHIOR · ENVIRONMENT</div>
+      <div class="weather" id="weather-widget">
+        <div class="weather-main">
+          <span class="weather-icon" id="weather-icon">--</span>
+          <span class="weather-temp" id="weather-temp">--°</span>
+        </div>
+        <div class="weather-detail">
+          <div class="row"><span class="key">COND</span><span class="val" id="weather-cond">--</span></div>
+          <div class="row"><span class="key">HUM</span><span class="val" id="weather-hum">--</span></div>
+          <div class="row"><span class="key">WIND</span><span class="val" id="weather-wind">--</span></div>
+          <div class="row"><span class="key">LOC</span><span class="val" id="weather-loc">--</span></div>
+        </div>
+      </div>
+      <div class="weather-loading" id="weather-loading">▹ SYNCING...</div>
+    </div>
+
+    <!-- Center: Clock + Search + Quick Links -->
+    <div class="center-panel">
+      <div class="greeting" id="greeting">--</div>
+      <div class="time" id="time">--:--:--</div>
+      <div class="date" id="date">--</div>
+
+      <div class="search">
+        <span class="search-icon">▸</span>
+        <input type="text" class="search-input" name="query" placeholder="search... g/ gh/ yt/ ddg/" autofocus>
+        <span class="search-hint">g/google gh/github yt/youtube ddg/duckduckgo</span>
+      </div>
+
+      <div class="quick-links" id="quick-links"></div>
+    </div>
+
+    <!-- Right panel: RSS + Notepad -->
+    <div class="side-panel right">
+      <div class="section-header">▸ BALTHASAR · FEED</div>
+      <div class="rss-panel" id="rss-panel">
+        <div class="no-data">NO FEEDS CONFIGURED</div>
+      </div>
+
+      <div class="section-header" style="margin-top:12px">▸ CASPER · NOTES</div>
+      <div class="notepad-wrap">
+        <textarea class="notepad-area" id="notepad" placeholder="SCRATCH NOTES..." spellcheck="false"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bottom bar ──────────────────────────────────── -->
+  <div class="bottombar">
+    <span>Ctrl+B Bookmarks</span>
+    <span class="bottombar-ticker" id="ticker">PATTERN ANALYSIS: NORMAL</span>
+    <a href="settings.html" class="settings-link">SETTINGS</a>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/weather.js"></script>
+  <script src="js/search.js"></script>
+  <script src="js/bookmarks.js"></script>
+  <script src="js/quick-links.js"></script>
+  <script src="js/rss.js"></script>
+  <script src="js/notepad.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
