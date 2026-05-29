@@ -71,7 +71,7 @@
     dateDisplay.textContent = dateStr;
     greetingDisplay.textContent = greeting;
     topbarClock.textContent = timeStr;
-    document.title = i18n.t('app_title') + ' :: ' + greeting.toUpperCase();
+    document.title = '..::' + greeting.toUpperCase();
   }
 
   i18n.init().then(() => {
