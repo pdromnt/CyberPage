@@ -2,30 +2,18 @@
 
 MAGI/NERV-themed new tab page extension for Chrome-based browsers. Terminal aesthetic, weather, RSS feeds, bookmarks and quick links.
 
-Forked from [ZenPage+](https://github.com/pdromnt/zenpage) with a complete visual overhaul and feature rework.
-
 ## Features
 
 - **MAGI terminal aesthetic** — CRT scanlines, flicker animation, green-on-black, `Share Tech Mono` font
-- **Clock & greeting** — centerpiece display with time-of-day greeting
+- **Clock & greeting** — centerpiece display with time-of-day greeting, localized to 6 languages
 - **Search with bangs** — `g/` Google, `gh/` GitHub, `yt/` YouTube, `ddg/` DuckDuckGo, `w/` Wikipedia, `npm/` npm
-- **Weather** — OpenWeatherMap with browser geolocation or city name. Emoji weather icons. No PositionStack needed.
+- **Weather** — OpenWeatherMap with browser geolocation or city name. Emoji weather icons
 - **RSS reader** — configurable feed URLs in settings, inline XML parsing (RSS 2.0 + Atom)
 - **Notepad** — persistent scratch notes via `chrome.storage.local`
 - **Quick links** — configurable shortcuts to popular sites
 - **Bookmarks** — categorized, `Ctrl+B` overlay
+- **i18n** — 6 languages: English, Portuguese, Dutch, German, Japanese, Spanish
 - **Export/import** — backup all settings as JSON
-
-## What's different from ZenPage
-
-| ZenPage | CyberPage |
-|---------|-----------|
-| Unsplash backgrounds | Solid dark terminal background |
-| PositionStack geocoding | OpenWeatherMap geocoding (one less API key) |
-| Lineicons font | Emoji/text weather icons |
-| 6-language i18n | English only |
-| animate.css, moment.js | CSS keyframes, Intl.DateTimeFormat |
-| Photo credits footer | MAGI ticker with Evangelion flavor text |
 
 ## Install
 
@@ -38,4 +26,4 @@ Forked from [ZenPage+](https://github.com/pdromnt/zenpage) with a complete visua
 
 ## License
 
-UNLICENSE — same as ZenPage+ for new code.
+UNLICENSE
