@@ -18,6 +18,7 @@
   ];
 
   let tickerIdx = 0;
+  let dateFormat = 'locale';
   const tickerEl = document.querySelector('#ticker');
 
   function updateTicker() {
@@ -26,6 +27,31 @@
   }
   updateTicker();
   setInterval(updateTicker, 6000);
+
+  // Load date format preference
+  chrome.storage.sync.get({ dateFormat: 'locale' }, function (result) {
+    dateFormat = result.dateFormat;
+  });
+
+  // React to settings changes
+  chrome.storage.onChanged.addListener(function (changes, namespace) {
+    if (namespace === 'sync' && changes.dateFormat) {
+      dateFormat = changes.dateFormat.newValue;
+      tick();
+    }
+  });
+
+  function formatDate(now, format, lang) {
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+
+    if (format === 'DD/MM/YYYY') return d + '/' + m + '/' + y;
+    if (format === 'MM/DD/YYYY') return m + '/' + d + '/' + y;
+    if (format === 'YYYY-MM-DD') return y + '-' + m + '-' + d;
+
+    return new Intl.DateTimeFormat(lang, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(now);
+  }
 
   function tick() {
     const now = new Date();
@@ -39,7 +65,7 @@
 
     const lang = i18n.currentLanguage || 'en';
     const timeStr = now.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    const dateStr = now.toLocaleDateString(lang, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const dateStr = formatDate(now, dateFormat, lang);
 
     timeDisplay.textContent = timeStr;
     dateDisplay.textContent = dateStr;
@@ -48,7 +74,6 @@
     document.title = i18n.t('app_title') + ' :: ' + greeting.toUpperCase();
   }
 
-  // Init i18n, then start clock
   i18n.init().then(() => {
     tick();
     setInterval(tick, 1000);

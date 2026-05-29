@@ -352,6 +352,12 @@
       chrome.storage.sync.get({ language: 'en' }, function (result) {
         langSelect.value = result.language || 'en';
       });
+
+      // Restore saved date format
+      chrome.storage.sync.get({ dateFormat: 'locale' }, function (result) {
+        const df = document.getElementById('date-format');
+        if (df) df.value = result.dateFormat || 'locale';
+      });
     } catch (e) {
       console.error('Failed to load languages:', e);
     }
@@ -363,10 +369,16 @@
     chrome.storage.sync.set({ language: langSelect.value });
   }
 
+  function saveDateFormat() {
+    const df = document.getElementById('date-format');
+    if (df) chrome.storage.sync.set({ dateFormat: df.value });
+  }
+
   // ── Save all ─────────────────────────────────────────────
 
   function saveAll() {
     saveLanguage();
+    saveDateFormat();
     saveWeatherSettings();
     collectRssFeeds();
     saveQuickLinks();
