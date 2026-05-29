@@ -86,8 +86,7 @@
     a.rel = 'noopener';
 
     const icon = document.createElement('span');
-    icon.className = 'quick-link-icon';
-    icon.textContent = '◆';
+    icon.className = 'quick-link-icon lni ' + (siteInfo.icon || '');
 
     const label = document.createElement('span');
     label.textContent = siteInfo.name || siteInfo.id;

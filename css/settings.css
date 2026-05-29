@@ -349,3 +349,55 @@ button:hover {
 .spacer-60 {
   height: 60px;
 }
+
+/* ── Collapsible details ──────────────────────────── */
+details.collapsible {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+details.collapsible summary {
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--panel-bg) 80%, var(--bg));
+  color: var(--text-dim);
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  list-style: none;
+}
+
+details.collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+details.collapsible summary::before {
+  content: '▸ ';
+  color: var(--accent);
+}
+
+details.collapsible[open] summary::before {
+  content: '▾ ';
+}
+
+details.collapsible summary:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+details.collapsible .input-group {
+  padding: 0 16px 12px;
+}
+
+details.collapsible .site {
+  border-left: none;
+  border-right: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+details.collapsible .site:first-child {
+  border-top: none;
+}

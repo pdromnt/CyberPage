@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SETTINGS · CYBERPAGE</title>
+  <link rel="stylesheet" href="css/lineicons.css">
   <link rel="stylesheet" href="css/settings.css">
 </head>
 
@@ -78,13 +79,13 @@
           <p class="hint">Leave empty to use browser geolocation.</p>
         </div>
 
-        <div class="input-group">
-          <label class="input-information" for="openweather-key">
-            OpenWeatherMap API Key
-            <a href="https://openweathermap.org/api" target="_blank" class="api-link">(Get Key)</a>
-          </label>
-          <input type="text" id="openweather-key" placeholder="Enter API Key">
-        </div>
+        <details class="collapsible">
+          <summary>OPENWEATHERMAP API KEY</summary>
+          <div class="input-group">
+            <input type="text" id="openweather-key" placeholder="Enter API Key">
+            <p class="hint"><a href="https://openweathermap.org/api" target="_blank" class="api-link">Get a free key at openweathermap.org/api</a></p>
+          </div>
+        </details>
       </section>
 
       <!-- RSS -->
@@ -100,7 +101,10 @@
       <section id="quick-links">
         <h2>QUICK LINKS</h2>
         <p>Select sites to show below the search bar.</p>
-        <div class="quick-links-container"></div>
+        <details class="collapsible">
+          <summary>AVAILABLE SITES</summary>
+          <div class="quick-links-container"></div>
+        </details>
       </section>
 
       <!-- Bookmarks -->

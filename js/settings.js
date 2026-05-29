@@ -122,6 +122,7 @@
             div.className = 'site';
             div.innerHTML = `
               <label>
+                <span class="lni ${site.icon || ''}"></span>
                 <input type="checkbox" data-site="${site.id}" ${checked ? 'checked' : ''}>
                 ${site.name || site.id}
               </label>
