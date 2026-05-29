@@ -116,7 +116,7 @@
 
           sites.forEach(site => {
             const sel = selected.find(s => s.name === site.id);
-            const checked = sel ? sel.selected : true;
+            const checked = sel ? sel.selected : false;
 
             const div = document.createElement('div');
             div.className = 'site';

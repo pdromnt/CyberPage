@@ -8,7 +8,6 @@
   const windEl = document.querySelector('#weather-wind');
   const locEl = document.querySelector('#weather-loc');
 
-  // Weather condition → Magi-friendly text icon
   const ICON_MAP = {
     '01d': '☀', '01n': '☾',
     '02d': '⛅', '02n': '⛅',
@@ -21,47 +20,49 @@
     '50d': '🌫', '50n': '🌫',
   };
 
-  function resolveLocation() {
-    return new Promise((resolve, reject) => {
-      chrome.storage.sync.get({ weather: {} }, function (result) {
-        const cfg = result.weather;
+  function resolveLocation(cfg) {
+    return new Promise((resolve) => {
+      // User-entered location via settings
+      if (cfg.location) {
+        const apiKey = cfg.apiKey;
+        if (!apiKey) { resolve({ error: 'NO_API_KEY' }); return; }
 
-        // User-entered location
-        if (cfg.location) {
-          // Try geocode via OpenWeatherMap direct (city name)
-          const apiKey = cfg.apiKey;
-          if (!apiKey) { resolve(null); return; }
-
-          fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cfg.location)}&limit=1&appid=${apiKey}`)
-            .then(r => r.json())
-            .then(data => {
-              if (data && data.length > 0) {
-                resolve({ lat: data[0].lat, lon: data[0].lon, name: cfg.location });
-              } else {
-                resolve(null);
-              }
-            })
-            .catch(() => resolve(null));
-        } else {
-          // Use browser geolocation
-          if (!navigator.geolocation) { resolve(null); return; }
-          navigator.geolocation.getCurrentPosition(
-            pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, name: null }),
-            () => resolve(null),
-            { enableHighAccuracy: false, timeout: 10000 }
-          );
-        }
-      });
+        fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cfg.location)}&limit=1&appid=${apiKey}`)
+          .then(r => r.json().then(data => ({ status: r.status, data })))
+          .then((response) => {
+            if (response.status !== 200) {
+              resolve({ error: 'GEO_HTTP_' + response.status });
+            } else if (response.data && response.data.length > 0) {
+              resolve({ lat: response.data[0].lat, lon: response.data[0].lon, name: cfg.location });
+            } else {
+              resolve({ error: 'GEO_NOT_FOUND' });
+            }
+          })
+          .catch(err => {
+            console.error('Geo fetch error:', err);
+            resolve({ error: 'GEO_NETWORK' });
+          });
+      } else {
+        // Browser geolocation
+        if (!navigator.geolocation) { resolve({ error: 'NO_GEOLOCATION' }); return; }
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, name: null }),
+          err => resolve({ error: 'GEO_DENIED' }),
+          { enableHighAccuracy: false, timeout: 10000 }
+        );
+      }
     });
   }
 
   function fetchWeather() {
     chrome.storage.sync.get({ weather: {} }, async function (result) {
       const cfg = result.weather;
-      if (!cfg.show) { weatherLoading.classList.add('hidden'); return; }
+      if (!cfg.show) {
+        weatherLoading.classList.add('hidden');
+        return;
+      }
 
-      const apiKey = cfg.apiKey;
-      if (!apiKey) {
+      if (!cfg.apiKey) {
         weatherLoading.textContent = '▹ API KEY REQUIRED';
         weatherLoading.classList.remove('hidden');
         return;
@@ -70,9 +71,10 @@
       weatherLoading.classList.remove('hidden');
       weatherLoading.textContent = '▹ SYNCING...';
 
-      const loc = await resolveLocation();
-      if (!loc) {
-        weatherLoading.textContent = '▹ LOCATION UNKNOWN';
+      const loc = await resolveLocation(cfg);
+      if (loc.error) {
+        weatherLoading.textContent = '▹ LOCATION: ' + loc.error;
+        console.warn('CyberPage weather: resolveLocation failed', loc.error, 'cfg:', cfg.location);
         return;
       }
 
@@ -86,25 +88,23 @@
         const now = Date.now();
 
         if (cache && (now - cache.timestamp < 600000)) {
-          // Use cached data
           renderWeather(cache.data, loc.name, units);
           return;
         }
 
-        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${loc.lat}&lon=${loc.lon}&units=${units}&lang=${lang}&appid=${apiKey}`)
-          .then(r => r.json())
-          .then(data => {
-            if (data.cod !== 200) {
-              weatherLoading.textContent = `▹ ERROR: ${data.message || 'UNKNOWN'}`;
+        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${loc.lat}&lon=${loc.lon}&units=${units}&lang=${lang}&appid=${cfg.apiKey}`)
+          .then(r => r.json().then(data => ({ status: r.status, data })))
+          .then((response) => {
+            if (response.data.cod !== 200) {
+              weatherLoading.textContent = '▹ API: ' + (response.data.message || response.status);
               return;
             }
 
-            // Cache it
             chrome.storage.local.set({
-              [cacheKey]: { data, timestamp: now }
+              [cacheKey]: { data: response.data, timestamp: now }
             });
 
-            renderWeather(data, loc.name, units);
+            renderWeather(response.data, loc.name, units);
           })
           .catch(err => {
             console.error('Weather fetch error:', err);
