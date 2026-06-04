@@ -320,6 +320,26 @@ body {
 
 .weather-loading.hidden { display: none; }
 
+/* ── Moon phase ────────────────────────────────────── */
+.moon-section { display: none; margin-top: 10px; }
+.moon-section.active { display: block; }
+
+.moon-section .section-header { margin-top: 6px; }
+
+.moon-main {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0 6px 2px;
+}
+
+.moon-phase-icon { font-size: 26px; }
+
+.moon-phase-text {
+  font-size: 14px; letter-spacing: 1px;
+  color: var(--text);
+}
+
+.moon-detail { padding-left: 4px; }
+
 /* ── RSS panel ─────────────────────────────────────── */
 .rss-panel { display: flex; flex-direction: column; gap: 2px; }
 

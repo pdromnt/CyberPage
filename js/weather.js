@@ -8,6 +8,15 @@
   const windEl = document.querySelector('#weather-wind');
   const locEl = document.querySelector('#weather-loc');
 
+  // Moon elements
+  const moonSection = document.querySelector('#moon-section');
+  const moonIconEl = document.querySelector('#moon-icon');
+  const moonPhaseEl = document.querySelector('#moon-phase');
+  const moonIllumEl = document.querySelector('#moon-illum');
+  const moonRiseEl = document.querySelector('#moon-rise');
+  const moonSetEl = document.querySelector('#moon-set');
+  const moonStatusEl = document.querySelector('#moon-status');
+
   const ICON_MAP = {
     '01d': '☀', '01n': '☾',
     '02d': '⛅', '02n': '⛅',
@@ -18,6 +27,17 @@
     '11d': '⛈', '11n': '⛈',
     '13d': '❄', '13n': '❄',
     '50d': '🌫', '50n': '🌫',
+  };
+
+  const MOON_PHASE_ICONS = {
+    'New Moon': '🌑',
+    'Waxing Crescent': '🌒',
+    'First Quarter': '🌓',
+    'Waxing Gibbous': '🌔',
+    'Full Moon': '🌕',
+    'Waning Gibbous': '🌖',
+    'Last Quarter': '🌗',
+    'Waning Crescent': '🌘',
   };
 
   function tryGeocode(queries, idx, apiKey, resolve) {
@@ -75,6 +95,7 @@
       const cfg = result.weather;
       if (!cfg.show) {
         weatherLoading.classList.add('hidden');
+        moonSection.classList.remove('active');
         return;
       }
 
@@ -103,6 +124,7 @@
 
         if (cache && (now - cache.timestamp < 600000)) {
           renderWeather(cache.data, loc.name, units);
+          fetchMoon(loc.lat, loc.lon, loc.name);
           return;
         }
 
@@ -119,6 +141,7 @@
             });
 
             renderWeather(response.data, loc.name, units);
+            fetchMoon(loc.lat, loc.lon, loc.name);
           })
           .catch(err => {
             console.error('Weather fetch error:', err);
@@ -147,6 +170,113 @@
 
     weatherLoading.classList.add('hidden');
     weatherWidget.classList.add('active');
+  }
+
+  // ── Moon phase ──────────────────────────────────────
+  function fetchMoon(lat, lon, locationName) {
+    const cacheKey = `moon_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+    chrome.storage.local.get([cacheKey], function (cacheResult) {
+      const cache = cacheResult[cacheKey];
+      const now = Date.now();
+
+      if (cache && (now - cache.timestamp < 7200000)) {
+        renderMoon(cache.data);
+        return;
+      }
+
+      // Get browser's local timezone offset (minutes east of UTC = -getTimezoneOffset)
+      const tzOffset = -new Date().getTimezoneOffset() / 60;
+      const tzStr = tzOffset.toFixed(1);
+
+      // Format today's date in YYYY-MM-DD
+      const today = new Date();
+      const dateStr = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+
+      const url = 'https://aa.usno.navy.mil/api/rstt/oneday?date=' + dateStr +
+        '&coords=' + lat.toFixed(4) + ',' + lon.toFixed(4) +
+        '&tz=' + tzStr;
+
+      fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          if (!data || !data.properties || !data.properties.data) {
+            console.warn('Moon API: unexpected response', data);
+            return;
+          }
+
+          const d = data.properties.data;
+          const moonData = {
+            phase: d.curphase || 'Unknown',
+            illum: d.fracillum || '--',
+            rise: findMoonEvent(d.moondata, 'Rise'),
+            set: findMoonEvent(d.moondata, 'Set'),
+          };
+
+          chrome.storage.local.set({
+            [cacheKey]: { data: moonData, timestamp: now }
+          });
+
+          renderMoon(moonData);
+        })
+        .catch(err => {
+          console.error('Moon fetch error:', err);
+        });
+    });
+  }
+
+  function findMoonEvent(moondata, phen) {
+    if (!moondata) return '--';
+    const event = moondata.find(e => e.phen === phen);
+    return event ? event.time : '--';
+  }
+
+  function parseTimeToMinutes(timeStr) {
+    if (!timeStr || timeStr === '--' || timeStr === '....' || timeStr === 'null') return null;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return null;
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  }
+
+  function isMoonVisible(riseTime, setTime) {
+    const riseMin = parseTimeToMinutes(riseTime);
+    const setMin = parseTimeToMinutes(setTime);
+    if (riseMin === null || setMin === null) return 'UNKNOWN';
+
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+
+    if (riseMin < setMin) {
+      // Normal case: moon rises and sets same day
+      return (nowMin >= riseMin && nowMin < setMin) ? 'VISIBLE ↑' : 'BELOW HORIZON';
+    } else {
+      // Crosses midnight: up from rise until midnight, then from midnight until set
+      return (nowMin >= riseMin || nowMin < setMin) ? 'VISIBLE ↑' : 'BELOW HORIZON';
+    }
+  }
+
+  function renderMoon(data) {
+    const icon = MOON_PHASE_ICONS[data.phase] || '🌙';
+    const visible = isMoonVisible(data.rise, data.set);
+
+    moonIconEl.textContent = icon;
+    moonPhaseEl.textContent = data.phase;
+    moonIllumEl.textContent = data.illum;
+    moonRiseEl.textContent = data.rise;
+    moonSetEl.textContent = data.set;
+    moonStatusEl.textContent = visible;
+
+    // Color the status based on visibility
+    if (visible.includes('VISIBLE')) {
+      moonStatusEl.style.color = 'var(--accent)';
+    } else if (visible === 'BELOW HORIZON') {
+      moonStatusEl.style.color = 'var(--text-dim)';
+    } else {
+      moonStatusEl.style.color = 'var(--red)';
+    }
+
+    moonSection.classList.add('active');
   }
 
   chrome.storage.onChanged.addListener(function (changes, namespace) {
