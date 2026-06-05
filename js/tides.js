@@ -10,6 +10,7 @@
   function fetchTides() {
     chrome.storage.sync.get({ tides: {} }, async function (result) {
       const cfg = result.tides || {};
+      console.log('[tides] settings:', JSON.stringify(cfg));
       if (!cfg.show) {
         tidesLoading.classList.add('hidden');
         tidesSection.classList.remove('active');
