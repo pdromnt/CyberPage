@@ -103,7 +103,10 @@
 
         <div class="input-group">
           <label class="input-information" for="tides-station">Station ID (optional)</label>
-          <input type="text" id="tides-station" name="tides-station" placeholder="e.g. fes2022-recife">
+          <div class="flex-center" style="gap:6px">
+            <input type="text" id="tides-station" name="tides-station" placeholder="e.g. fes2022-recife" style="flex:1">
+            <a href="https://tidecheck.com" target="_blank" class="info-icon" title="Find your nearest station at tidecheck.com — search for your city, then use the Station ID shown on the page">ⓘ</a>
+          </div>
           <p class="hint">Leave empty to auto-detect nearest station via geolocation.</p>
         </div>
 

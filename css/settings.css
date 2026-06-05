@@ -401,3 +401,16 @@ details.collapsible .site {
 details.collapsible .site:first-child {
   border-top: none;
 }
+
+.info-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  border: 1px solid var(--accent); border-radius: 50%;
+  color: var(--accent); font-size: 12px; font-weight: bold;
+  text-decoration: none; cursor: help;
+  flex-shrink: 0; transition: background 0.15s, color 0.15s;
+}
+.info-icon:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
