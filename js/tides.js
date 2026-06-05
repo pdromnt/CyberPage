@@ -33,10 +33,8 @@ console.log('[tides] script loaded');
       // Resolve location: use configured station, or geolocation
       if (!stationId) {
         coords = await getCoords(cfg);
-        if (!coords) {
-          tidesLoading.textContent = '▹ LOCATION UNAVAILABLE';
-          return;
-        }
+        // If somehow still null (shouldn't happen with fallback), use Recife
+        if (!coords) coords = { lat: -8.05, lon: -34.88 };
 
         // Check cache for nearest station
         const coordKey = `tides_station_${coords.lat.toFixed(2)}_${coords.lon.toFixed(2)}`;
@@ -73,10 +71,14 @@ console.log('[tides] script loaded');
 
   function getCoords(cfg) {
     return new Promise((resolve) => {
-      if (!navigator.geolocation) { resolve(null); return; }
+      // If geolocation fails or is denied, fall back to Recife
+      if (!navigator.geolocation) {
+        resolve({ lat: -8.05, lon: -34.88 });
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => resolve(null),
+        () => resolve({ lat: -8.05, lon: -34.88 }),
         { enableHighAccuracy: false, timeout: 8000 }
       );
     });
