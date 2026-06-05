@@ -1,3 +1,4 @@
+console.log('[tides] script loaded');
 (function () {
   const tidesSection = document.querySelector('#tides-section');
   const tidesLoading = document.querySelector('#tides-loading');
