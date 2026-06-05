@@ -358,6 +358,10 @@ body {
   letter-spacing: 1px;
 }
 
+.tides-icon {
+  font-size: 26px;
+}
+
 .tides-trend {
   font-size: 10px;
   letter-spacing: 2px;
