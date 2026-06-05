@@ -340,6 +340,76 @@ body {
 
 .moon-detail { padding-left: 4px; }
 
+/* ── Tides ─────────────────────────────────────────── */
+.tides-section { display: none; }
+.tides-section.active { display: block; }
+
+.tides-section .section-header { margin-top: 6px; }
+
+.tides-main {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 2px 0 6px 2px;
+}
+
+.tides-now {
+  font-size: 24px;
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent);
+  letter-spacing: 1px;
+}
+
+.tides-trend {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: blink-cursor 2s infinite;
+}
+
+.tides-detail { padding-left: 4px; margin-bottom: 4px; }
+
+.tides-table {
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+.tide-row {
+  display: flex; gap: 8px;
+  padding: 1px 0 1px 4px;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.tide-type {
+  color: var(--text-dim);
+  min-width: 36px;
+}
+
+.tide-time {
+  color: var(--text);
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tide-h {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.tide-now {
+  color: var(--accent);
+  animation: blink-green 1.5s infinite;
+}
+
+.tides-loading {
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 4px 0;
+}
+
+.tides-loading.hidden { display: none; }
+
 /* ── RSS panel ─────────────────────────────────────── */
 .rss-panel { display: flex; flex-direction: column; gap: 2px; }
 

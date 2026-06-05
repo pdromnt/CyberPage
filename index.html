@@ -41,6 +41,20 @@
       </div>
       <div class="weather-loading" id="weather-loading">▹ SYNCING...</div>
 
+      <div class="tides-section" id="tides-section">
+        <div class="section-header" style="margin-top:8px">▸ TIDES</div>
+        <div class="tides-main">
+          <span class="tides-now" id="tide-now">--</span>
+          <span class="tides-trend" id="tide-trend">--</span>
+        </div>
+        <div class="tides-detail">
+          <div class="row"><span class="key">HIGH</span><span class="val" id="tide-next-high">--</span></div>
+          <div class="row"><span class="key">LOW</span><span class="val" id="tide-next-low">--</span></div>
+        </div>
+        <div class="tides-table" id="tide-table"></div>
+      </div>
+      <div class="tides-loading" id="tides-loading">▹ SYNCING TIDES...</div>
+
       <div class="moon-section" id="moon-section">
         <div class="section-header">▸ MOON</div>
         <div class="moon-main">
@@ -94,6 +108,7 @@
 
   <script src="js/i18n.js"></script>
   <script src="js/weather.js"></script>
+  <script src="js/tides.js"></script>
   <script src="js/search.js"></script>
   <script src="js/bookmarks.js"></script>
   <script src="js/quick-links.js"></script>

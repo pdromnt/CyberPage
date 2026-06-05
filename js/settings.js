@@ -34,6 +34,27 @@
     });
   }
 
+  // ── Tides settings ────────────────────────────────────
+
+  function loadTidesSettings() {
+    chrome.storage.sync.get({ tides: {} }, function (result) {
+      const cfg = result.tides || {};
+      document.getElementById('display-tides').checked = !!cfg.show;
+      document.getElementById('tidecheck-key').value = cfg.apiKey || '';
+      document.getElementById('tides-station').value = cfg.stationId || '';
+    });
+  }
+
+  function saveTidesSettings() {
+    chrome.storage.sync.get({ tides: {} }, function (result) {
+      const cfg = result.tides || {};
+      cfg.show = document.getElementById('display-tides').checked;
+      cfg.apiKey = document.getElementById('tidecheck-key').value.trim();
+      cfg.stationId = document.getElementById('tides-station').value.trim();
+      chrome.storage.sync.set({ tides: cfg });
+    });
+  }
+
   // ── RSS feeds ───────────────────────────────────────────
 
   function loadRssFeeds() {
@@ -381,6 +402,7 @@
     saveLanguage();
     saveDateFormat();
     saveWeatherSettings();
+    saveTidesSettings();
     collectRssFeeds();
     saveQuickLinks();
     collectBookmarks();
@@ -401,6 +423,7 @@
   // Load everything
   populateLanguages();
   loadWeatherSettings();
+  loadTidesSettings();
   loadRssFeeds();
   loadQuickLinks();
   loadBookmarks();
