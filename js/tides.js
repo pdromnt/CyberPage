@@ -53,8 +53,8 @@
               { headers: { 'X-API-Key': cfg.apiKey } }
             );
             const data = await resp.json();
-            const station = data.station || data;
-            stationId = station.id;
+            const first = Array.isArray(data) ? data[0] : (data.station || data);
+            stationId = first?.id;
             chrome.storage.local.set({
               [coordKey]: { stationId, timestamp: Date.now() }
             });
@@ -86,8 +86,8 @@
       const cache = cacheResult[cacheKey];
       const now = Date.now();
 
-      // Tides are astronomical predictions — cache aggressively (2h)
-      if (cache && (now - cache.timestamp < 7200000)) {
+      // Tides are astronomical predictions — cache 12h
+      if (cache && (now - cache.timestamp < 43200000)) {
         renderTides(cache.data, stationId);
         return;
       }
@@ -111,7 +111,7 @@
 
   function renderTides(data, stationId) {
     const extremes = data.extremes || [];
-    const heights = data.heights || [];
+    const timeSeries = data.timeSeries || [];
     const now = new Date();
 
     if (!extremes.length) {
@@ -123,8 +123,8 @@
     let currentHeight = null;
     let trend = null;
 
-    if (heights.length >= 2) {
-      const sorted = [...heights].sort((a, b) => a.time.localeCompare(b.time));
+    if (timeSeries.length >= 2) {
+      const sorted = [...timeSeries].sort((a, b) => a.time.localeCompare(b.time));
       let best = null, bestDiff = Infinity;
       for (const h of sorted) {
         const diff = Math.abs(new Date(h.time) - now);
@@ -188,7 +188,7 @@
 
     // Today's table
     const today = now.toISOString().slice(0, 10);
-    const todayEx = extremes.filter(e => e.time.startsWith(today));
+    const todayEx = extremes.filter(e => (e.localDate || e.time?.slice(0, 10)) === today);
 
     let tableHtml = '';
     if (todayEx.length) {
