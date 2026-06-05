@@ -63,31 +63,61 @@
 
   function resolveLocation(cfg) {
     return new Promise((resolve) => {
-      if (cfg.location) {
-        const apiKey = cfg.apiKey;
-        if (!apiKey) { resolve({ error: 'NO_API_KEY' }); return; }
+      // Check location cache first (24h TTL)
+      const locKey = cfg.location
+        ? `weather_loc_geocode_${cfg.location.trim().toLowerCase()}`
+        : 'weather_loc_geo';
 
-        // Build fallback queries: "Recife, PE" → try "Recife", then "Recife,BR"
-        const raw = cfg.location.trim();
-        const queries = [raw];
-        const commaIdx = raw.indexOf(',');
-        if (commaIdx > 0) {
-          queries.push(raw.substring(0, commaIdx).trim());
-        }
-        if (!raw.match(/,\s*[A-Z]{2}$/)) {
-          queries.push((commaIdx > 0 ? raw.substring(0, commaIdx).trim() : raw) + ',BR');
+      chrome.storage.local.get([locKey], function (cacheResult) {
+        const cached = cacheResult[locKey];
+        if (cached && (Date.now() - cached.timestamp < 86400000)) {
+          resolve({ lat: cached.lat, lon: cached.lon, name: cached.name });
+          return;
         }
 
-        tryGeocode(queries, 0, apiKey, resolve);
-      } else {
-        if (!navigator.geolocation) { resolve({ error: 'NO_GEOLOCATION' }); return; }
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, name: null }),
-          err => resolve({ error: 'GEO_DENIED' }),
-          { enableHighAccuracy: false, timeout: 10000 }
-        );
-      }
+        // No cache hit — resolve fresh
+        doResolveLocation(cfg, locKey, resolve);
+      });
     });
+  }
+
+  function doResolveLocation(cfg, locKey, resolve) {
+    if (cfg.location) {
+      const apiKey = cfg.apiKey;
+      if (!apiKey) { resolve({ error: 'NO_API_KEY' }); return; }
+
+      const raw = cfg.location.trim();
+      const queries = [raw];
+      const commaIdx = raw.indexOf(',');
+      if (commaIdx > 0) {
+        queries.push(raw.substring(0, commaIdx).trim());
+      }
+      if (!raw.match(/,\s*[A-Z]{2}$/)) {
+        queries.push((commaIdx > 0 ? raw.substring(0, commaIdx).trim() : raw) + ',BR');
+      }
+
+      tryGeocode(queries, 0, apiKey, (result) => {
+        if (!result.error) {
+          chrome.storage.local.set({
+            [locKey]: { lat: result.lat, lon: result.lon, name: result.name, timestamp: Date.now() }
+          });
+        }
+        resolve(result);
+      });
+    } else {
+      if (!navigator.geolocation) { resolve({ error: 'NO_GEOLOCATION' }); return; }
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const r = { lat: pos.coords.latitude, lon: pos.coords.longitude, name: null };
+          chrome.storage.local.set({
+            [locKey]: { lat: r.lat, lon: r.lon, name: null, timestamp: Date.now() }
+          });
+          resolve(r);
+        },
+        err => resolve({ error: 'GEO_DENIED' }),
+        { enableHighAccuracy: false, timeout: 10000 }
+      );
+    }
   }
 
   function fetchWeather() {
