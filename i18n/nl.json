@@ -4,5 +4,10 @@
   "greeting_afternoon": "Goedemiddag",
   "greeting_evening": "Goedenavond",
   "greeting_night": "Goedenacht",
-  "search_placeholder": "Zoeken... g/ gh/ yt/ ddg/"
+  "search_placeholder": "Zoeken... g/ gh/ yt/ ddg/",
+  "section_environment": "▸ MELCHIOR · ENVIRONMENT",
+  "section_moon": "▸ MOON",
+  "section_tides": "▸ TIDES",
+  "section_feed": "▸ BALTHASAR · FEED",
+  "section_notes": "▸ CASPER · NOTES"
 }

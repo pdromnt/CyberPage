@@ -4,5 +4,10 @@
   "greeting_afternoon": "Good afternoon",
   "greeting_evening": "Good evening",
   "greeting_night": "Good night",
-  "search_placeholder": "Search... g/ gh/ yt/ ddg/"
+  "search_placeholder": "Search... g/ gh/ yt/ ddg/",
+  "section_environment": "▸ MELCHIOR · ENVIRONMENT",
+  "section_moon": "▸ MOON",
+  "section_tides": "▸ TIDES",
+  "section_feed": "▸ BALTHASAR · FEED",
+  "section_notes": "▸ CASPER · NOTES"
 }

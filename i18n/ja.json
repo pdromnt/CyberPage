@@ -4,5 +4,10 @@
   "greeting_afternoon": "こんにちは",
   "greeting_evening": "こんばんは",
   "greeting_night": "おやすみなさい",
-  "search_placeholder": "検索... g/ gh/ yt/ ddg/"
+  "search_placeholder": "検索... g/ gh/ yt/ ddg/",
+  "section_environment": "▸ MELCHIOR · ENVIRONMENT",
+  "section_moon": "▸ MOON",
+  "section_tides": "▸ TIDES",
+  "section_feed": "▸ BALTHASAR · FEED",
+  "section_notes": "▸ CASPER · NOTES"
 }
