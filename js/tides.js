@@ -121,7 +121,7 @@ console.log('[tides] script loaded');
 
       // Fetch fresh (no cache, cache expired, or no future data & cooldown expired/absent)
       console.log('[tides] fetching fresh data');
-      fetch(`https://tidecheck.com/api/station/${stationId}/tides?datum=LAT&days=1`, {
+      fetch(`https://tidecheck.com/api/station/${stationId}/tides?datum=LAT&days=2`, {
         headers: { 'X-API-Key': cfg.apiKey }
       })
         .then(r => r.json())
