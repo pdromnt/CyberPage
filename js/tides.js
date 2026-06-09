@@ -4,8 +4,7 @@ console.log('[tides] script loaded');
   const tidesLoading = document.querySelector('#tides-loading');
   const tideNow = document.querySelector('#tide-now');
   const tideTrend = document.querySelector('#tide-trend');
-  const tideNextHigh = document.querySelector('#tide-next-high');
-  const tideNextLow = document.querySelector('#tide-next-low');
+  const tidesDetail = document.querySelector('#tides-section .tides-detail');
   const tideTable = document.querySelector('#tide-table');
 
   function fetchTides() {
@@ -204,45 +203,21 @@ console.log('[tides] script loaded');
         ? 'var(--red)'
         : 'var(--text-dim)';
 
-    // Next high / low
-    let nextHigh = null, nextLow = null;
-    for (const ex of extremes) {
-      if (new Date(ex.time) > now) {
-        if (!nextHigh && ex.type === 'high') nextHigh = ex;
-        if (!nextLow && ex.type === 'low') nextLow = ex;
-        if (nextHigh && nextLow) break;
-      }
-    }
+    // Hide the next high/low summary — table covers it
+    tidesDetail.style.display = 'none';
 
-    if (nextHigh) {
-      const t = new Date(nextHigh.time);
-      tideNextHigh.textContent = formatHHMM(t) + '  ' + nextHigh.height.toFixed(2) + 'm';
-    } else {
-      tideNextHigh.textContent = '--';
-    }
-
-    if (nextLow) {
-      const t = new Date(nextLow.time);
-      tideNextLow.textContent = formatHHMM(t) + '  ' + nextLow.height.toFixed(2) + 'm';
-    } else {
-      tideNextLow.textContent = '--';
-    }
-
-    // Today's table
-    const today = now.toISOString().slice(0, 10);
-    const todayEx = extremes.filter(e => (e.localDate || e.time?.slice(0, 10)) === today);
+    // Table: only present and future tides (drop past)
+    const future = extremes.filter(e => new Date(e.time) >= now);
 
     let tableHtml = '';
-    if (todayEx.length) {
-      for (const ex of todayEx) {
+    if (future.length) {
+      for (const ex of future) {
         const t = new Date(ex.time);
         const etype = (ex.type || '?').toUpperCase();
-        const near = Math.abs(t - now) < 3600000 ? ' ◀' : '';
         tableHtml += `<div class="tide-row">
           <span class="tide-type">${etype}</span>
           <span class="tide-time">${formatHHMM(t)}</span>
           <span class="tide-h">${ex.height.toFixed(2)}m</span>
-          ${near ? '<span class="tide-now">◀</span>' : ''}
         </div>`;
       }
     } else {
