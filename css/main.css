@@ -372,16 +372,13 @@ body {
 .tides-detail { padding-left: 4px; margin-bottom: 4px; }
 
 .tides-table {
-  border-top: 1px solid var(--border);
-  padding-top: 4px;
-  margin-top: 4px;
+  padding-top: 2px;
 }
 
 .tide-row {
   display: flex; gap: 8px;
-  padding: 1px 0 1px 4px;
-  font-size: 10px;
-  letter-spacing: 1px;
+  padding: 2px 0 2px 4px;
+  font-size: 11px;
 }
 
 .tide-type {
