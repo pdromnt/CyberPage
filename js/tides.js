@@ -84,18 +84,44 @@ console.log('[tides] script loaded');
     });
   }
 
+  function hasFutureExtremes(data) {
+    const extremes = data.extremes || [];
+    const now = new Date();
+    for (const ex of extremes) {
+      if (new Date(ex.time) > now) return true;
+    }
+    return false;
+  }
+
   function doFetchTides(stationId, cfg, coords) {
     const cacheKey = `tides_data_${stationId}`;
-    chrome.storage.local.get([cacheKey], function (cacheResult) {
+    const cooldownKey = `tides_cooldown_${stationId}`;
+    chrome.storage.local.get([cacheKey, cooldownKey], function (cacheResult) {
       const cache = cacheResult[cacheKey];
+      const cooldown = cacheResult[cooldownKey];
       const now = Date.now();
 
-      // Tides are astronomical predictions — cache 12h
-      if (cache && (now - cache.timestamp < 43200000)) {
-        renderTides(cache.data, stationId);
-        return;
+      if (cache) {
+        const age = now - cache.timestamp;
+        const hasFuture = hasFutureExtremes(cache.data);
+
+        // Normal: 12h cache when we have future tide data
+        if (hasFuture && age < 43200000) {
+          console.log('[tides] cache hit (12h, has future data)');
+          renderTides(cache.data, stationId);
+          return;
+        }
+
+        // No future data + within 6h cooldown after a failed retry: serve stale, don't hammer API
+        if (!hasFuture && cooldown && (now - cooldown.timestamp < 21600000)) {
+          console.log('[tides] cooldown active, serving stale cache');
+          renderTides(cache.data, stationId);
+          return;
+        }
       }
 
+      // Fetch fresh (no cache, cache expired, or no future data & cooldown expired/absent)
+      console.log('[tides] fetching fresh data');
       fetch(`https://tidecheck.com/api/station/${stationId}/tides?datum=LAT&days=1`, {
         headers: { 'X-API-Key': cfg.apiKey }
       })
@@ -104,6 +130,18 @@ console.log('[tides] script loaded');
           chrome.storage.local.set({
             [cacheKey]: { data, timestamp: now }
           });
+
+          // If still no future data after fetch, set 6h cooldown
+          if (!hasFutureExtremes(data)) {
+            console.log('[tides] fetch returned no future data, setting 6h cooldown');
+            chrome.storage.local.set({
+              [cooldownKey]: { timestamp: now }
+            });
+          } else {
+            // Fresh future data — clear any stale cooldown
+            chrome.storage.local.remove(cooldownKey);
+          }
+
           renderTides(data, stationId);
         })
         .catch(err => {
