@@ -265,18 +265,30 @@
   function isMoonVisible(riseTime, setTime) {
     const riseMin = parseTimeToMinutes(riseTime);
     const setMin = parseTimeToMinutes(setTime);
-    if (riseMin === null || setMin === null) return 'UNKNOWN';
 
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
 
-    if (riseMin < setMin) {
-      // Normal case: moon rises and sets same day
-      return (nowMin >= riseMin && nowMin < setMin) ? 'VISIBLE ↑' : 'BELOW HORIZON';
-    } else {
-      // Crosses midnight: up from rise until midnight, then from midnight until set
-      return (nowMin >= riseMin || nowMin < setMin) ? 'VISIBLE ↑' : 'BELOW HORIZON';
+    // Both available: standard logic
+    if (riseMin !== null && setMin !== null) {
+      if (riseMin < setMin) {
+        return (nowMin >= riseMin && nowMin < setMin) ? 'VISIBLE ↑' : 'BELOW HORIZON';
+      } else {
+        return (nowMin >= riseMin || nowMin < setMin) ? 'VISIBLE ↑' : 'BELOW HORIZON';
+      }
     }
+
+    // Moon rose before today (no rise event) — use set time alone
+    if (riseMin === null && setMin !== null) {
+      return nowMin < setMin ? 'VISIBLE ↑' : 'BELOW HORIZON';
+    }
+
+    // Moon sets after midnight (no set event today) — use rise time alone
+    if (riseMin !== null && setMin === null) {
+      return nowMin >= riseMin ? 'VISIBLE ↑' : 'BELOW HORIZON';
+    }
+
+    return 'UNKNOWN';
   }
 
   function renderMoon(data) {
