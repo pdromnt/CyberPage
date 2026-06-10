@@ -237,6 +237,8 @@
             illum: d.fracillum || '--',
             rise: rise,
             set: set,
+            riseDay: rise !== '--' ? 'Today' : null,
+            setDay: set !== '--' ? 'Today' : null,
           };
 
           // If rise is missing (moon rose before today), try yesterday's data
@@ -252,6 +254,7 @@
               const yesterdayRise = ycache[yesterdayCacheKey];
               if (yesterdayRise && yesterdayRise.rise) {
                 moonData.rise = yesterdayRise.rise;
+                moonData.riseDay = 'Yesterday';
                 chrome.storage.local.set({
                   [cacheKey]: { data: moonData, timestamp: now }
                 });
@@ -267,6 +270,7 @@
                     const yd = yData.properties?.data;
                     const yRise = findMoonEvent(yd?.moondata, 'Rise');
                     moonData.rise = yRise;
+                    moonData.riseDay = 'Yesterday';
                     // Cache yesterday's rise for future use
                     chrome.storage.local.set({
                       [yesterdayCacheKey]: { rise: yRise, timestamp: now },
@@ -345,8 +349,12 @@
     moonIconEl.textContent = icon;
     moonPhaseEl.textContent = data.phase;
     moonIllumEl.textContent = data.illum;
-    moonRiseEl.textContent = data.rise;
-    moonSetEl.textContent = data.set;
+    moonRiseEl.textContent = data.rise !== '--' && data.riseDay
+      ? data.riseDay + ' ' + data.rise
+      : data.rise;
+    moonSetEl.textContent = data.set !== '--' && data.setDay
+      ? data.setDay + ' ' + data.set
+      : data.set;
     moonStatusEl.textContent = visible;
 
     // Color the status based on visibility

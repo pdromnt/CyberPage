@@ -216,7 +216,7 @@ console.log('[tides] script loaded');
         const etype = (ex.type || '?').toUpperCase();
         tableHtml += `<div class="tide-row">
           <span class="tide-type">${etype}</span>
-          <span class="tide-time">${formatHHMM(t)}</span>
+          <span class="tide-time">${formatTideTime(t)}</span>
           <span class="tide-h">${ex.height.toFixed(2)}m</span>
         </div>`;
       }
@@ -229,8 +229,9 @@ console.log('[tides] script loaded');
     tidesSection.classList.add('active');
   }
 
-  function formatHHMM(d) {
-    return String(d.getHours()).padStart(2, '0') + ':' +
+  function formatTideTime(d) {
+    return String(d.getDate()).padStart(2, '0') + ' ' +
+           String(d.getHours()).padStart(2, '0') + ':' +
            String(d.getMinutes()).padStart(2, '0');
   }
 
