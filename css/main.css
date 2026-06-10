@@ -388,7 +388,7 @@ body {
 
 .tide-time {
   color: var(--text);
-  min-width: 44px;
+  min-width: 60px;
   font-variant-numeric: tabular-nums;
 }
 
