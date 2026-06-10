@@ -346,7 +346,10 @@
     const icon = MOON_PHASE_ICONS[data.phase] || '🌙';
     const visible = isMoonVisible(data.rise, data.set);
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
     const setLabel = data.fetchedDate === todayStr ? 'Today' : data.fetchedDate || '';
     const riseLabel = data.riseFromYesterday ? 'Yesterday' : setLabel;
 
