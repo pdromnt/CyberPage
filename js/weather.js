@@ -230,18 +230,65 @@
           }
 
           const d = data.properties.data;
+          const rise = findMoonEvent(d.moondata, 'Rise');
+          const set = findMoonEvent(d.moondata, 'Set');
           const moonData = {
             phase: d.curphase || 'Unknown',
             illum: d.fracillum || '--',
-            rise: findMoonEvent(d.moondata, 'Rise'),
-            set: findMoonEvent(d.moondata, 'Set'),
+            rise: rise,
+            set: set,
           };
 
-          chrome.storage.local.set({
-            [cacheKey]: { data: moonData, timestamp: now }
-          });
+          // If rise is missing (moon rose before today), try yesterday's data
+          if (rise === '--') {
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.getFullYear() + '-' +
+              String(yesterday.getMonth() + 1).padStart(2, '0') + '-' +
+              String(yesterday.getDate()).padStart(2, '0');
+            const yesterdayCacheKey = `moon_${lat.toFixed(2)}_${lon.toFixed(2)}_${yesterdayStr}`;
 
-          renderMoon(moonData);
+            chrome.storage.local.get([yesterdayCacheKey], function (ycache) {
+              const yesterdayRise = ycache[yesterdayCacheKey];
+              if (yesterdayRise && yesterdayRise.rise) {
+                moonData.rise = yesterdayRise.rise;
+                chrome.storage.local.set({
+                  [cacheKey]: { data: moonData, timestamp: now }
+                });
+                renderMoon(moonData);
+              } else {
+                // Fetch yesterday's data for the rise time
+                const yesterdayUrl = 'https://aa.usno.navy.mil/api/rstt/oneday?date=' + yesterdayStr +
+                  '&coords=' + lat.toFixed(4) + ',' + lon.toFixed(4) +
+                  '&tz=' + tzStr;
+                fetch(yesterdayUrl)
+                  .then(r => r.json())
+                  .then(yData => {
+                    const yd = yData.properties?.data;
+                    const yRise = findMoonEvent(yd?.moondata, 'Rise');
+                    moonData.rise = yRise;
+                    // Cache yesterday's rise for future use
+                    chrome.storage.local.set({
+                      [yesterdayCacheKey]: { rise: yRise, timestamp: now },
+                      [cacheKey]: { data: moonData, timestamp: now }
+                    });
+                    renderMoon(moonData);
+                  })
+                  .catch(() => {
+                    // Fallback: save with whatever we have
+                    chrome.storage.local.set({
+                      [cacheKey]: { data: moonData, timestamp: now }
+                    });
+                    renderMoon(moonData);
+                  });
+              }
+            });
+          } else {
+            chrome.storage.local.set({
+              [cacheKey]: { data: moonData, timestamp: now }
+            });
+            renderMoon(moonData);
+          }
         })
         .catch(err => {
           console.error('Moon fetch error:', err);
