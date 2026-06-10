@@ -237,8 +237,8 @@
             illum: d.fracillum || '--',
             rise: rise,
             set: set,
-            riseDay: rise !== '--' ? 'Today' : null,
-            setDay: set !== '--' ? 'Today' : null,
+            fetchedDate: dateStr,
+            riseFromYesterday: false,
           };
 
           // If rise is missing (moon rose before today), try yesterday's data
@@ -254,7 +254,7 @@
               const yesterdayRise = ycache[yesterdayCacheKey];
               if (yesterdayRise && yesterdayRise.rise) {
                 moonData.rise = yesterdayRise.rise;
-                moonData.riseDay = 'Yesterday';
+                moonData.riseFromYesterday = true;
                 chrome.storage.local.set({
                   [cacheKey]: { data: moonData, timestamp: now }
                 });
@@ -270,7 +270,7 @@
                     const yd = yData.properties?.data;
                     const yRise = findMoonEvent(yd?.moondata, 'Rise');
                     moonData.rise = yRise;
-                    moonData.riseDay = 'Yesterday';
+                    moonData.riseFromYesterday = true;
                     // Cache yesterday's rise for future use
                     chrome.storage.local.set({
                       [yesterdayCacheKey]: { rise: yRise, timestamp: now },
@@ -346,14 +346,18 @@
     const icon = MOON_PHASE_ICONS[data.phase] || '🌙';
     const visible = isMoonVisible(data.rise, data.set);
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const setLabel = data.fetchedDate === todayStr ? 'Today' : data.fetchedDate || '';
+    const riseLabel = data.riseFromYesterday ? 'Yesterday' : setLabel;
+
     moonIconEl.textContent = icon;
     moonPhaseEl.textContent = data.phase;
     moonIllumEl.textContent = data.illum;
-    moonRiseEl.textContent = data.rise !== '--' && data.riseDay
-      ? data.riseDay + ' ' + data.rise
+    moonRiseEl.textContent = data.rise !== '--'
+      ? riseLabel + ' ' + data.rise
       : data.rise;
-    moonSetEl.textContent = data.set !== '--' && data.setDay
-      ? data.setDay + ' ' + data.set
+    moonSetEl.textContent = data.set !== '--'
+      ? setLabel + ' ' + data.set
       : data.set;
     moonStatusEl.textContent = visible;
 
