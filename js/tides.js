@@ -28,8 +28,7 @@ console.log('[tides] script loaded');
       }
 
       _cfg = cfg;
-
-      let stationId = cfg.stationId || null;
+      console.log('[tides] fetchTides — show:', cfg.show, 'hasKey:', !!cfg.apiKey, 'cfgStation:', cfg.stationId || '(none)');
       let coords = null;
 
       // Resolve location: use configured station, or geolocation
@@ -102,32 +101,58 @@ console.log('[tides] script loaded');
   function doFetchTides(stationId, cfg, coords) {
     const cacheKey = `tides_data_${stationId}`;
     const cooldownKey = `tides_cooldown_${stationId}`;
+    console.log('[tides] doFetchTides called — station:', stationId);
     chrome.storage.local.get([cacheKey, cooldownKey], function (cacheResult) {
       const cache = cacheResult[cacheKey];
       const cooldown = cacheResult[cooldownKey];
       const now = Date.now();
 
+      if (cache) {
+        const ageH = Math.round((now - cache.timestamp) / 3600000 * 10) / 10;
+        const extremesCount = (cache.data.extremes || []).length;
+        const hasFuture = hasFutureExtremes(cache.data);
+        console.log('[tides] cache exists — age:', ageH + 'h, extremes:', extremesCount, 'hasFuture:', hasFuture);
+      } else {
+        console.log('[tides] no cache found');
+      }
+
       // Simple age-based TTL: serve cache if within 12h
       if (cache && (now - cache.timestamp < 43200000)) {
-        console.log('[tides] cache hit (age ' + Math.round((now - cache.timestamp)/3600000) + 'h)');
+        const ageH = Math.round((now - cache.timestamp) / 3600000 * 10) / 10;
+        console.log('[tides] cache HIT (age ' + ageH + 'h < 12h) — serving cached data');
         renderTides(cache.data, stationId);
         return;
       }
 
       // Cache expired (>12h) or missing — fetch fresh
-      console.log('[tides] cache expired or missing, fetching fresh');
+      if (cache) {
+        const ageH = Math.round((now - cache.timestamp) / 3600000 * 10) / 10;
+        console.log('[tides] cache EXPIRED (age ' + ageH + 'h >= 12h) — fetching fresh');
+      } else {
+        console.log('[tides] no cache — fetching fresh');
+      }
       fetch(`https://tidecheck.com/api/station/${stationId}/tides?datum=LAT&days=2`, {
         headers: { 'X-API-Key': cfg.apiKey }
       })
-        .then(r => r.json())
-        .then(data => {
+        .then(r => {
+          console.log('[tides] fetch response status:', r.status);
+          return r.json().then(data => ({ status: r.status, data }));
+        })
+        .then(({ status, data }) => {
+          if (status !== 200) {
+            console.error('[tides] API returned non-200:', status, JSON.stringify(data).slice(0, 200));
+            if (cache) { console.log('[tides] serving stale cache as fallback'); renderTides(cache.data, stationId); }
+            else { tidesLoading.textContent = '▹ API ERROR ' + status; }
+            return;
+          }
+          console.log('[tides] fetch OK — extremes:', (data.extremes || []).length, 'hasFuture:', hasFutureExtremes(data));
           chrome.storage.local.set({
             [cacheKey]: { data, timestamp: now }
           });
 
           // If no future extremes, set 6h cooldown before retrying
           if (!hasFutureExtremes(data)) {
-            console.log('[tides] fetch returned no future data, setting 6h cooldown');
+            console.log('[tides] no future extremes in response — setting 6h cooldown');
             chrome.storage.local.set({
               [cooldownKey]: { timestamp: now }
             });
@@ -139,7 +164,7 @@ console.log('[tides] script loaded');
           renderTides(data, stationId);
         })
         .catch(err => {
-          console.error('Tide fetch error:', err);
+          console.error('[tides] fetch exception:', err.message || err);
           // Serve stale cache on fetch failure if we have one
           if (cache) {
             console.log('[tides] fetch failed, serving stale cache');
@@ -240,6 +265,7 @@ console.log('[tides] script loaded');
   // React to settings changes
   chrome.storage.onChanged.addListener(function (changes, namespace) {
     if (namespace === 'sync' && changes.tides) {
+      console.log('[tides] settings changed, re-fetching');
       fetchTides();
     }
   });
@@ -247,10 +273,11 @@ console.log('[tides] script loaded');
   // Periodically refresh tides while the tab is open (every 60 min)
   setInterval(function () {
     if (_stationId && _cfg && _cfg.show && _cfg.apiKey) {
-      console.log('[tides] periodic refresh');
+      console.log('[tides] periodic refresh triggered (60min interval)');
       doFetchTides(_stationId, _cfg, _coords);
     }
   }, 60 * 60 * 1000);
+  console.log('[tides] periodic refresh interval registered (60min)');
 
   fetchTides();
 })();
