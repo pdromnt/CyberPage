@@ -29,6 +29,7 @@ console.log('[tides] script loaded');
 
       _cfg = cfg;
       console.log('[tides] fetchTides — show:', cfg.show, 'hasKey:', !!cfg.apiKey, 'cfgStation:', cfg.stationId || '(none)');
+      let stationId = cfg.stationId || null;
       let coords = null;
 
       // Resolve location: use configured station, or geolocation
