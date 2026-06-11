@@ -7,6 +7,10 @@ console.log('[tides] script loaded');
   const tidesDetail = document.querySelector('#tides-section .tides-detail');
   const tideTable = document.querySelector('#tide-table');
 
+  let _stationId = null;
+  let _cfg = null;
+  let _coords = null;
+
   function fetchTides() {
     chrome.storage.sync.get({ tides: {} }, async function (result) {
       const cfg = result.tides || {};
@@ -23,8 +27,7 @@ console.log('[tides] script loaded');
         return;
       }
 
-      tidesLoading.classList.remove('hidden');
-      tidesLoading.textContent = '▹ SYNCING TIDES...';
+      _cfg = cfg;
 
       let stationId = cfg.stationId || null;
       let coords = null;
@@ -34,6 +37,7 @@ console.log('[tides] script loaded');
         coords = await getCoords(cfg);
         // If somehow still null (shouldn't happen with fallback), use Recife
         if (!coords) coords = { lat: -8.05, lon: -34.88 };
+        _coords = coords;
 
         // Check cache for nearest station
         const coordKey = `tides_station_${coords.lat.toFixed(2)}_${coords.lon.toFixed(2)}`;
@@ -41,6 +45,7 @@ console.log('[tides] script loaded');
           const cached = cacheResult[coordKey];
           if (cached && (Date.now() - cached.timestamp < 86400000)) {
             stationId = cached.stationId;
+            _stationId = stationId;
             doFetchTides(stationId, cfg, coords);
             return;
           }
@@ -54,6 +59,7 @@ console.log('[tides] script loaded');
             const data = await resp.json();
             const first = Array.isArray(data) ? data[0] : (data.station || data);
             stationId = first?.id;
+            _stationId = stationId;
             chrome.storage.local.set({
               [coordKey]: { stationId, timestamp: Date.now() }
             });
@@ -63,6 +69,7 @@ console.log('[tides] script loaded');
           }
         });
       } else {
+        _stationId = stationId;
         doFetchTides(stationId, cfg, null);
       }
     });
@@ -100,27 +107,15 @@ console.log('[tides] script loaded');
       const cooldown = cacheResult[cooldownKey];
       const now = Date.now();
 
-      if (cache) {
-        const age = now - cache.timestamp;
-        const hasFuture = hasFutureExtremes(cache.data);
-
-        // Normal: 12h cache when we have future tide data
-        if (hasFuture && age < 43200000) {
-          console.log('[tides] cache hit (12h, has future data)');
-          renderTides(cache.data, stationId);
-          return;
-        }
-
-        // No future data + within 6h cooldown after a failed retry: serve stale, don't hammer API
-        if (!hasFuture && cooldown && (now - cooldown.timestamp < 21600000)) {
-          console.log('[tides] cooldown active, serving stale cache');
-          renderTides(cache.data, stationId);
-          return;
-        }
+      // Simple age-based TTL: serve cache if within 12h
+      if (cache && (now - cache.timestamp < 43200000)) {
+        console.log('[tides] cache hit (age ' + Math.round((now - cache.timestamp)/3600000) + 'h)');
+        renderTides(cache.data, stationId);
+        return;
       }
 
-      // Fetch fresh (no cache, cache expired, or no future data & cooldown expired/absent)
-      console.log('[tides] fetching fresh data');
+      // Cache expired (>12h) or missing — fetch fresh
+      console.log('[tides] cache expired or missing, fetching fresh');
       fetch(`https://tidecheck.com/api/station/${stationId}/tides?datum=LAT&days=2`, {
         headers: { 'X-API-Key': cfg.apiKey }
       })
@@ -130,7 +125,7 @@ console.log('[tides] script loaded');
             [cacheKey]: { data, timestamp: now }
           });
 
-          // If still no future data after fetch, set 6h cooldown
+          // If no future extremes, set 6h cooldown before retrying
           if (!hasFutureExtremes(data)) {
             console.log('[tides] fetch returned no future data, setting 6h cooldown');
             chrome.storage.local.set({
@@ -145,7 +140,13 @@ console.log('[tides] script loaded');
         })
         .catch(err => {
           console.error('Tide fetch error:', err);
-          tidesLoading.textContent = '▹ NETWORK ERROR';
+          // Serve stale cache on fetch failure if we have one
+          if (cache) {
+            console.log('[tides] fetch failed, serving stale cache');
+            renderTides(cache.data, stationId);
+          } else {
+            tidesLoading.textContent = '▹ NETWORK ERROR';
+          }
         });
     });
   }
@@ -242,6 +243,14 @@ console.log('[tides] script loaded');
       fetchTides();
     }
   });
+
+  // Periodically refresh tides while the tab is open (every 60 min)
+  setInterval(function () {
+    if (_stationId && _cfg && _cfg.show && _cfg.apiKey) {
+      console.log('[tides] periodic refresh');
+      doFetchTides(_stationId, _cfg, _coords);
+    }
+  }, 60 * 60 * 1000);
 
   fetchTides();
 })();
