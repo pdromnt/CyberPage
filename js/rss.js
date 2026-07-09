@@ -4,24 +4,33 @@
   // Default RSS feed config — user overrides via settings
   const DEFAULT_FEEDS = [];
 
-  function loadFeeds() {
-    chrome.storage.sync.get({ rssFeeds: DEFAULT_FEEDS }, function (result) {
-      const feeds = result.rssFeeds || [];
+  async function ensureFeedUARule() {
+    try {
+      await chrome.runtime.sendMessage({ type: 'ensureFeedUA' });
+    } catch (_) {
+      // service worker not registered yet — extension probably needs reload
+    }
+  }
 
-      if (!feeds.length) {
-        rssPanel.innerHTML = '<div class="no-data">▹ NO FEEDS CONFIGURED</div>';
-        return;
-      }
+  async function loadFeeds() {
+    await ensureFeedUARule();
 
-      // Show loading
-      rssPanel.innerHTML = '<div class="no-data">▹ FETCHING FEEDS...</div>';
+    const result = await new Promise(resolve =>
+      chrome.storage.sync.get({ rssFeeds: DEFAULT_FEEDS }, resolve)
+    );
+    const feeds = result.rssFeeds || [];
 
-      // Fetch each feed
-      Promise.allSettled(feeds.map(f => fetchAndParse(f)))
-        .then(results => {
-          renderFeeds(feeds, results);
-        });
-    });
+    if (!feeds.length) {
+      rssPanel.innerHTML = '<div class="no-data">▹ NO FEEDS CONFIGURED</div>';
+      return;
+    }
+
+    // Show loading
+    rssPanel.innerHTML = '<div class="no-data">▹ FETCHING FEEDS...</div>';
+
+    // Fetch each feed
+    const results = await Promise.allSettled(feeds.map(f => fetchAndParse(f)));
+    renderFeeds(feeds, results);
   }
 
   async function fetchAndParse(feed) {

@@ -13,11 +13,15 @@
   "permissions": [
     "storage",
     "geolocation",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "declarativeNetRequest"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "icons": {
     "16": "./icons/icon-16.png",
     "48": "./icons/icon-48.png",
