@@ -25,7 +25,12 @@ const FEED_UA_RULE = {
       { header: 'sec-ch-ua-wo64', operation: 'remove' }
     ]
   },
-  condition: { resourceTypes: ['xmlhttprequest', 'other'] }
+  condition: {
+    // DNR rules are browser-wide by default. Restrict this rule to requests
+    // originating from CyberPage so regular tabs keep their real UA hints.
+    initiatorDomains: [chrome.runtime.id],
+    resourceTypes: ['xmlhttprequest', 'other']
+  }
 };
 
 function ensureFeedUARule() {
