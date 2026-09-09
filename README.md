@@ -1,5 +1,7 @@
 # CyberPage
 
+<img width="1761" height="895" alt="image" src="https://github.com/user-attachments/assets/8c1df850-ba01-466a-bfff-b042456277b8" />
+
 MAGI/NERV-themed new tab page extension for Chrome-based browsers. Terminal aesthetic, weather, RSS feeds, bookmarks and quick links.
 
 ## Features
