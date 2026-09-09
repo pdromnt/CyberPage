@@ -13,6 +13,7 @@
 
 ![CyberPage new tab interface](https://github.com/user-attachments/assets/8c1df850-ba01-466a-bfff-b042456277b8)
 
+
 CyberPage replaces the browser's new tab page with a compact personal dashboard: weather and astronomical data on the left, search and shortcuts in the center, feeds and notes on the right, and a daily quote along the bottom. It is built with plain HTML, CSS, and JavaScript—no framework, build step, account, or analytics.
 
 The look is based on the terminal displays of NERV's MAGI supercomputers: green phosphor text, amber accents, CRT scanlines, restrained animation, and dense information without turning the page into cockpit soup.
