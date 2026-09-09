@@ -7,6 +7,7 @@
     <img alt="CSS" src="https://img.shields.io/badge/CSS-1572B6?style=flat&amp;logo=css3&amp;logoColor=white">
     <img alt="HTML5" src="https://img.shields.io/badge/HTML5-E34F26?style=flat&amp;logo=html5&amp;logoColor=white">
     <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-ff9933?style=flat&amp;logo=googlechrome&amp;logoColor=white">
+    <img alt="License: Unlicense" src="https://img.shields.io/badge/license-Unlicense-blue?style=flat">
   </p>
 </div>
 
@@ -22,10 +23,10 @@ The look is based on the terminal displays of NERV's MAGI supercomputers: green 
 
 - **Clock, date, and greeting** localized to the selected language.
 - **Weather** from Open-Meteo using a configured city or browser geolocation. No API key required.
-- **Moon data** from the US Naval Observatory, including phase, illumination, rise/set times, and visibility.
+- **Moon data** from the US Naval Observatory, including phase, illumination, rise/set times, and visibility. It can be shown independently from weather.
 - **Tide predictions** from TideCheck, with current height and trend, next high/low, and a daily table.
 - **RSS and Atom reader** for user-configured feeds, with independent scrolling and failure states per feed.
-- **Pinned notes** stored locally and saved automatically while typing.
+- **Pinned notes** stored locally and saved automatically while typing. The panel can be hidden without deleting its contents.
 - **Pinned todo checklist** with add, complete, and delete controls. It can be disabled in Settings.
 - **Quote of the day** backed by a local ten-quote queue from DummyJSON. One quote is shown per local calendar day and the queue refills when three remain.
 
@@ -78,11 +79,13 @@ Open **[SETTINGS]** from CyberPage. Saving returns to the new tab page.
 ### General
 
 - Choose the interface language and date format.
-- Enable or disable the todo widget. Existing todo items remain stored when the widget is hidden.
+- Enable or disable the todo, notes, search, and quote-of-the-day widgets. Hidden notes and todo items remain stored.
 
 ### Weather
 
 Enable the widget, select Celsius or Fahrenheit, and optionally enter a location such as `Recife, BR`.
+
+Weather and moon visibility are configured independently, but both use the same configured location.
 
 When the location is blank, CyberPage requests browser geolocation. If location access is denied, configure a city manually. Open-Meteo weather and geocoding do not require an API key.
 
@@ -220,4 +223,4 @@ Bug reports and focused pull requests are welcome. Please include the browser, t
 
 ## License
 
-No license is currently granted. The repository is publicly viewable, but the code remains unlicensed unless a license file is added later.
+CyberPage is released into the public domain under [The Unlicense](UNLICENSE).

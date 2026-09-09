@@ -10,10 +10,12 @@
     quote: 'No quote received. Silence is also data.',
     author: 'CyberPage'
   };
+  const widget = document.querySelector('#qotd-widget');
   const output = document.querySelector('#qotd-text');
   let state = { quotes: [], index: 0, dateKey: '' };
   let advancing = false;
   let lastFetchAttempt = 0;
+  let initialized = false;
 
   async function init() {
     const saved = await chrome.storage.local.get({ [CACHE_KEY]: null });
@@ -120,18 +122,31 @@
     return `${year}-${month}-${day}`;
   }
 
+  function setVisibility(show) {
+    widget.hidden = !show;
+    if (!show || initialized) return;
+    initialized = true;
+    init().catch(() => {
+      state = { quotes: [FALLBACK_QUOTE], index: 0, dateKey: localDateKey() };
+      render();
+    });
+  }
+
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace !== 'local' || !changes[CACHE_KEY]?.newValue) return;
-    state = normalizeState(changes[CACHE_KEY].newValue);
-    render();
+    if (namespace === 'sync' && changes.qotd) {
+      setVisibility(changes.qotd.newValue?.show !== false);
+    }
+    if (namespace === 'local' && changes[CACHE_KEY]?.newValue) {
+      state = normalizeState(changes[CACHE_KEY].newValue);
+      render();
+    }
   });
 
   setInterval(() => {
-    advanceToDate().catch(() => {});
+    if (initialized && !widget.hidden) advanceToDate().catch(() => {});
   }, 60000);
 
-  init().catch(() => {
-    state = { quotes: [FALLBACK_QUOTE], index: 0, dateKey: localDateKey() };
-    render();
+  chrome.storage.sync.get({ qotd: { show: true } }).then(result => {
+    setVisibility(result.qotd?.show !== false);
   });
 })();

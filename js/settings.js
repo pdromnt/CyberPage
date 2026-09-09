@@ -16,6 +16,10 @@
         language: 'en',
         dateFormat: 'locale',
         todo: { show: true },
+        notes: { show: true },
+        search: { show: true },
+        qotd: { show: true },
+        moon: null,
         weather: {},
         tides: {},
         rssFeeds: [],
@@ -32,6 +36,12 @@
     document.getElementById('language').value = syncData.language || 'en';
     document.getElementById('date-format').value = syncData.dateFormat || 'locale';
     document.getElementById('display-todo').checked = syncData.todo?.show !== false;
+    document.getElementById('display-notes').checked = syncData.notes?.show !== false;
+    document.getElementById('display-search').checked = syncData.search?.show !== false;
+    document.getElementById('display-qotd').checked = syncData.qotd?.show !== false;
+    document.getElementById('display-moon').checked = syncData.moon
+      ? syncData.moon.show !== false
+      : !!syncData.weather?.show;
     loadWeatherSettings(syncData.weather);
     await loadTidesSettings(syncData.tides, localData.tidecheckApiKey);
     if (syncData.weather?.apiKey) {
@@ -241,6 +251,10 @@
       const language = document.getElementById('language').value;
       const dateFormat = document.getElementById('date-format').value;
       const todo = { show: document.getElementById('display-todo').checked };
+      const notes = { show: document.getElementById('display-notes').checked };
+      const search = { show: document.getElementById('display-search').checked };
+      const qotd = { show: document.getElementById('display-qotd').checked };
+      const moon = { show: document.getElementById('display-moon').checked };
       const weather = {
         show: document.getElementById('display-weather').checked,
         location: document.getElementById('weather-location').value.trim(),
@@ -257,6 +271,10 @@
           language,
           dateFormat,
           todo,
+          notes,
+          search,
+          qotd,
+          moon,
           weather,
           tides,
           rssFeeds: feeds,
@@ -325,6 +343,18 @@
     }
     if (value.todo && typeof value.todo === 'object') {
       data.todo = { show: value.todo.show !== false };
+    }
+    if (value.notes && typeof value.notes === 'object') {
+      data.notes = { show: value.notes.show !== false };
+    }
+    if (value.search && typeof value.search === 'object') {
+      data.search = { show: value.search.show !== false };
+    }
+    if (value.qotd && typeof value.qotd === 'object') {
+      data.qotd = { show: value.qotd.show !== false };
+    }
+    if (value.moon && typeof value.moon === 'object') {
+      data.moon = { show: value.moon.show !== false };
     }
     if (value.weather && typeof value.weather === 'object') {
       data.weather = {

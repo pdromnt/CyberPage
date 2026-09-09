@@ -73,20 +73,28 @@
   async function fetchWeather() {
     const sequence = ++fetchSequence;
     await i18n.init();
-    const result = await chrome.storage.sync.get({ weather: {} });
+    const result = await chrome.storage.sync.get({ weather: {}, moon: null });
     const cfg = result.weather || {};
+    const showWeather = !!cfg.show;
+    const showMoon = result.moon ? result.moon.show !== false : showWeather;
 
-    if (!cfg.show) {
+    if (!showWeather) {
       weatherWidget.classList.remove('active');
       weatherLoading.classList.add('hidden');
+    }
+    if (!showMoon) {
       moonSection.classList.remove('active');
+    }
+    if (!showWeather && !showMoon) {
       return;
     }
 
-    weatherWidget.classList.remove('active');
-    moonSection.classList.remove('active');
-    weatherLoading.classList.remove('hidden');
-    weatherLoading.textContent = '▹ SYNCING...';
+    if (showWeather) {
+      weatherWidget.classList.remove('active');
+      weatherLoading.classList.remove('hidden');
+      weatherLoading.textContent = '▹ SYNCING...';
+    }
+    if (showMoon) moonSection.classList.remove('active');
 
     const lang = i18n.currentLanguage || 'en';
     const locCacheKey = cfg.location
@@ -98,7 +106,10 @@
     if (!loc || Date.now() - loc.timestamp >= 86400000) {
       loc = await resolveLocation(cfg, lang);
       if (loc.error) {
-        if (sequence === fetchSequence) weatherLoading.textContent = '▹ ' + loc.error;
+        if (sequence === fetchSequence) {
+          if (showWeather) weatherLoading.textContent = '▹ ' + loc.error;
+          if (showMoon) renderMoonError(loc.error);
+        }
         return;
       }
       loc.timestamp = Date.now();
@@ -106,13 +117,18 @@
     }
     if (sequence !== fetchSequence) return;
 
+    if (!showWeather) {
+      if (showMoon) fetchMoon(loc.lat, loc.lon, loc.timezone, sequence);
+      return;
+    }
+
     const units = cfg.units === 'imperial' ? 'imperial' : 'metric';
     const cacheKey = `weather_${loc.lat.toFixed(2)}_${loc.lon.toFixed(2)}_${units}_${lang}`;
     const cacheResult = await chrome.storage.local.get([cacheKey]);
     const cache = cacheResult[cacheKey];
     if (cache && Date.now() - cache.timestamp < 600000) {
       renderWeather(cache.data, loc.name, units);
-      fetchMoon(loc.lat, loc.lon, cache.data.timezone || loc.timezone, sequence);
+      if (showMoon) fetchMoon(loc.lat, loc.lon, cache.data.timezone || loc.timezone, sequence);
       return;
     }
 
@@ -133,7 +149,7 @@
       if (sequence !== fetchSequence) return;
       await chrome.storage.local.set({ [cacheKey]: { data, timestamp: Date.now() } });
       renderWeather(data, loc.name, units);
-      fetchMoon(loc.lat, loc.lon, data.timezone || loc.timezone, sequence);
+      if (showMoon) fetchMoon(loc.lat, loc.lon, data.timezone || loc.timezone, sequence);
     } catch (error) {
       console.error('Weather fetch error:', error);
       if (sequence === fetchSequence) weatherLoading.textContent = '▹ NETWORK ERROR';
@@ -245,6 +261,16 @@
     moonSection.classList.add('active');
   }
 
+  function renderMoonError(message) {
+    moonPhaseEl.textContent = '--';
+    moonIllumEl.textContent = '--';
+    moonRiseEl.textContent = '--';
+    moonSetEl.textContent = '--';
+    moonStatusEl.textContent = message;
+    moonStatusEl.style.color = 'var(--red)';
+    moonSection.classList.add('active');
+  }
+
   function isMoonVisible(riseTime, setTime, timezone) {
     const rise = timeToMinutes(riseTime);
     const set = timeToMinutes(setTime);
@@ -309,7 +335,7 @@
   }
 
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'sync' && changes.weather) fetchWeather();
+    if (namespace === 'sync' && (changes.weather || changes.moon)) fetchWeather();
   });
 
   fetchWeather();

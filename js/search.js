@@ -1,4 +1,5 @@
 (function () {
+  const searchWidget = document.querySelector('#search-widget');
   const searchInput = document.querySelector('.search-input');
 
   const BANGS = {
@@ -39,6 +40,18 @@
     window.location.href = 'https://www.google.com/search?q=' + encodeURIComponent(query);
   }
 
-  // Focus search on load
-  searchInput.focus();
+  function setVisibility(show) {
+    searchWidget.hidden = !show;
+    if (show) searchInput.focus();
+  }
+
+  chrome.storage.sync.get({ search: { show: true } }).then(result => {
+    setVisibility(result.search?.show !== false);
+  });
+
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.search) {
+      setVisibility(changes.search.newValue?.show !== false);
+    }
+  });
 })();
