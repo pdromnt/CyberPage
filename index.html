@@ -4,6 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title data-i18n="app_title">CyberPage</title>
+        <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png" />
 
         <link rel="stylesheet" href="css/reset.css" />
         <link rel="stylesheet" href="css/lineicons.css" />
@@ -16,16 +17,21 @@
 
         <!-- ── Top bar ─────────────────────────────────────── -->
         <div class="topbar">
-            <div class="topbar-title">MAGI INTERFACE</div>
-            <div class="topbar-clock" id="topbar-clock">--:--:--</div>
+            <div class="topbar-title">CYBERPAGE COMPUTER INTERFACE</div>
+            <nav class="topbar-actions" aria-label="CyberPage actions">
+                <button type="button" class="topbar-action" id="open-bookmarks">[BOOKMARKS]</button>
+                <a href="settings.html" class="topbar-action">[SETTINGS]</a>
+            </nav>
         </div>
 
         <!-- ── Main layout ─────────────────────────────────── -->
         <div class="layout">
             <!-- Left panel: Weather -->
             <div class="side-panel left">
-                <div class="section-header" data-i18n="section_environment">
-                    ▸ ENVIRONMENT
+                <div class="panel-scroll">
+                <div class="section-header section-header-split">
+                    <span data-i18n="section_environment">▸ ENVIRONMENT</span>
+                    <span class="section-meta">DATA: <a href="https://open-meteo.com/" target="_blank" rel="noopener">OPEN-METEO</a></span>
                 </div>
                 <div class="weather" id="weather-widget">
                     <div class="weather-main">
@@ -111,6 +117,19 @@
                         </div>
                     </div>
                 </div>
+                </div>
+
+                <section class="panel-dock todo-dock" id="todo-widget" hidden>
+                    <div class="section-header section-header-split">
+                        <span>▸ TODO</span>
+                        <span class="section-meta" id="todo-count">0/50</span>
+                    </div>
+                    <form class="todo-form" id="todo-form">
+                        <input type="text" id="todo-input" maxlength="160" placeholder="ADD TASK..." autocomplete="off" aria-label="New todo item" />
+                        <button type="submit" aria-label="Add todo item">+</button>
+                    </form>
+                    <div class="todo-list" id="todo-list"></div>
+                </section>
             </div>
 
             <!-- Center: Clock + Search + Quick Links -->
@@ -139,38 +158,37 @@
 
             <!-- Right panel: RSS + Notepad -->
             <div class="side-panel right">
+                <div class="panel-scroll">
                 <div class="section-header" data-i18n="section_feed">
                     ▸ FEED
                 </div>
                 <div class="rss-panel" id="rss-panel">
                     <div class="no-data">NO FEEDS CONFIGURED</div>
                 </div>
-
-                <div
-                    class="section-header"
-                    style="margin-top: 12px"
-                    data-i18n="section_notes"
-                >
-                    ▸ NOTES
                 </div>
-                <div class="notepad-wrap">
-                    <textarea
-                        class="notepad-area"
-                        id="notepad"
-                        placeholder="SCRATCH NOTES..."
-                        spellcheck="false"
-                    ></textarea>
+
+                <div class="panel-dock notes-dock">
+                    <div class="section-header" data-i18n="section_notes">
+                        ▸ NOTES
+                    </div>
+                    <div class="notepad-wrap">
+                        <textarea
+                            class="notepad-area"
+                            id="notepad"
+                            placeholder="SCRATCH NOTES..."
+                            spellcheck="false"
+                        ></textarea>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- ── Bottom bar ──────────────────────────────────── -->
         <div class="bottombar">
-            <span>[BOOKMARKS (CTRL+B)]</span>
-            <span class="bottombar-ticker" id="ticker"
-                >PATTERN ANALYSIS: NORMAL</span
-            >
-            <a href="settings.html" class="settings-link">[SETTINGS]</a>
+            <span class="qotd">
+                <span class="qotd-label">QOTD</span>
+                <span class="qotd-text" id="qotd-text">SYNCING...</span>
+            </span>
         </div>
 
         <script src="js/i18n.js"></script>
@@ -181,6 +199,8 @@
         <script src="js/quick-links.js"></script>
         <script src="js/rss.js"></script>
         <script src="js/notepad.js"></script>
+        <script src="js/todo.js"></script>
+        <script src="js/qotd.js"></script>
         <script src="js/main.js"></script>
     </body>
 </html>

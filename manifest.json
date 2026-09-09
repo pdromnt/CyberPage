@@ -13,11 +13,11 @@
   "permissions": [
     "storage",
     "geolocation",
-    "unlimitedStorage",
     "declarativeNetRequest"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://*/*",
+    "http://*/*"
   ],
   "background": {
     "service_worker": "background.js"

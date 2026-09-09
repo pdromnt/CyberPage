@@ -1,4 +1,3 @@
-console.log('[tides] script loaded');
 (function () {
   const tidesSection = document.querySelector('#tides-section');
   const tidesLoading = document.querySelector('#tides-loading');
@@ -6,279 +5,263 @@ console.log('[tides] script loaded');
   const tideTrend = document.querySelector('#tide-trend');
   const tidesDetail = document.querySelector('#tides-section .tides-detail');
   const tideTable = document.querySelector('#tide-table');
+  let currentStationId = null;
+  let currentConfig = null;
+  let fetchSequence = 0;
 
-  let _stationId = null;
-  let _cfg = null;
-  let _coords = null;
+  async function fetchTides() {
+    const sequence = ++fetchSequence;
+    const [syncResult, localResult] = await Promise.all([
+      chrome.storage.sync.get({ tides: {} }),
+      chrome.storage.local.get({ tidecheckApiKey: '' })
+    ]);
+    const saved = syncResult.tides || {};
+    const cfg = { ...saved, apiKey: localResult.tidecheckApiKey || saved.apiKey || '' };
 
-  function fetchTides() {
-    chrome.storage.sync.get({ tides: {} }, async function (result) {
-      const cfg = result.tides || {};
-      console.log('[tides] settings:', JSON.stringify(cfg));
-      if (!cfg.show) {
-        tidesLoading.classList.add('hidden');
-        tidesSection.classList.remove('active');
+    if (saved.apiKey && !localResult.tidecheckApiKey) {
+      await chrome.storage.local.set({ tidecheckApiKey: saved.apiKey });
+      const clean = { ...saved };
+      delete clean.apiKey;
+      await chrome.storage.sync.set({ tides: clean });
+    }
+
+    currentConfig = cfg;
+    currentStationId = null;
+    if (!cfg.show) {
+      tidesSection.classList.remove('active');
+      tidesLoading.classList.add('hidden');
+      return;
+    }
+    tidesSection.classList.remove('active');
+    tidesLoading.classList.remove('hidden');
+    tidesLoading.textContent = '▹ SYNCING TIDES...';
+
+    if (!cfg.apiKey) {
+      tidesLoading.textContent = '▹ TIDECHECK KEY REQUIRED';
+      return;
+    }
+
+    let stationId = normalizeStationId(cfg.stationId);
+    if (!stationId) {
+      const coords = await getCoords();
+      if (sequence !== fetchSequence) return;
+      if (!coords) {
+        tidesLoading.textContent = '▹ LOCATION OR STATION REQUIRED';
         return;
       }
-
-      if (!cfg.apiKey) {
-        tidesLoading.textContent = '▹ TIDECHECK KEY REQUIRED';
-        tidesLoading.classList.remove('hidden');
-        return;
-      }
-
-      _cfg = cfg;
-      console.log('[tides] fetchTides — show:', cfg.show, 'hasKey:', !!cfg.apiKey, 'cfgStation:', cfg.stationId || '(none)');
-      let stationId = cfg.stationId || null;
-      let coords = null;
-
-      // Resolve location: use configured station, or geolocation
+      stationId = await resolveStation(coords, cfg.apiKey);
+      if (sequence !== fetchSequence) return;
       if (!stationId) {
-        coords = await getCoords(cfg);
-        // If somehow still null (shouldn't happen with fallback), use Recife
-        if (!coords) coords = { lat: -8.05, lon: -34.88 };
-        _coords = coords;
-
-        // Check cache for nearest station
-        const coordKey = `tides_station_${coords.lat.toFixed(2)}_${coords.lon.toFixed(2)}`;
-        chrome.storage.local.get([coordKey], async function (cacheResult) {
-          const cached = cacheResult[coordKey];
-          if (cached && (Date.now() - cached.timestamp < 86400000)) {
-            stationId = cached.stationId;
-            _stationId = stationId;
-            doFetchTides(stationId, cfg, coords);
-            return;
-          }
-
-          // Find nearest station
-          try {
-            const resp = await fetch(
-              `https://tidecheck.com/api/stations/nearest?lat=${coords.lat}&lng=${coords.lon}`,
-              { headers: { 'X-API-Key': cfg.apiKey } }
-            );
-            const data = await resp.json();
-            const first = Array.isArray(data) ? data[0] : (data.station || data);
-            stationId = first?.id;
-            _stationId = stationId;
-            chrome.storage.local.set({
-              [coordKey]: { stationId, timestamp: Date.now() }
-            });
-            doFetchTides(stationId, cfg, coords);
-          } catch (e) {
-            tidesLoading.textContent = '▹ STATION LOOKUP FAILED';
-          }
-        });
-      } else {
-        _stationId = stationId;
-        doFetchTides(stationId, cfg, null);
+        tidesLoading.textContent = '▹ STATION LOOKUP FAILED';
+        return;
       }
-    });
+    }
+
+    currentStationId = stationId;
+    await loadStationTides(stationId, cfg.apiKey, sequence);
   }
 
-  function getCoords(cfg) {
-    return new Promise((resolve) => {
-      // If geolocation fails or is denied, fall back to Recife
-      if (!navigator.geolocation) {
-        resolve({ lat: -8.05, lon: -34.88 });
-        return;
-      }
+  function getCoords() {
+    if (!navigator.geolocation) return Promise.resolve(null);
+    return new Promise(resolve => {
       navigator.geolocation.getCurrentPosition(
         pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => resolve({ lat: -8.05, lon: -34.88 }),
+        () => resolve(null),
         { enableHighAccuracy: false, timeout: 8000 }
       );
     });
   }
 
-  function hasFutureExtremes(data) {
-    const extremes = data.extremes || [];
-    const now = new Date();
-    for (const ex of extremes) {
-      if (new Date(ex.time) > now) return true;
+  async function resolveStation(coords, apiKey) {
+    const coordKey = `tides_station_${coords.lat.toFixed(2)}_${coords.lon.toFixed(2)}`;
+    const cacheResult = await chrome.storage.local.get([coordKey]);
+    const cached = cacheResult[coordKey];
+    if (cached && Date.now() - cached.timestamp < 86400000) {
+      const cachedId = normalizeStationId(cached.stationId);
+      if (cachedId) return cachedId;
     }
-    return false;
+
+    try {
+      const { response, data } = await fetchJson(
+        `https://tidecheck.com/api/stations/nearest?lat=${coords.lat}&lng=${coords.lon}`,
+        { headers: { 'X-API-Key': apiKey } }
+      );
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const stationId = normalizeStationId(Array.isArray(data) ? data[0]?.id : data?.station?.id || data?.id);
+      if (!stationId) throw new Error('No station returned');
+      await chrome.storage.local.set({ [coordKey]: { stationId, timestamp: Date.now() } });
+      return stationId;
+    } catch (error) {
+      console.error('Tide station lookup failed:', error);
+      return null;
+    }
   }
 
-  function doFetchTides(stationId, cfg, coords) {
+  function hasFutureExtremes(data) {
+    return (Array.isArray(data?.extremes) ? data.extremes : [])
+      .some(extreme => validDate(extreme.time) > new Date());
+  }
+
+  async function loadStationTides(stationId, apiKey, sequence) {
     const cacheKey = `tides_data_${stationId}`;
     const cooldownKey = `tides_cooldown_${stationId}`;
-    console.log('[tides] doFetchTides called — station:', stationId);
-    chrome.storage.local.get([cacheKey, cooldownKey], function (cacheResult) {
-      const cache = cacheResult[cacheKey];
-      const cooldown = cacheResult[cooldownKey];
-      const now = Date.now();
+    const cacheResult = await chrome.storage.local.get([cacheKey, cooldownKey]);
+    const cache = cacheResult[cacheKey];
+    const cooldown = cacheResult[cooldownKey];
+    const now = Date.now();
 
-      if (cache) {
-        const ageH = Math.round((now - cache.timestamp) / 3600000 * 10) / 10;
-        const extremesCount = (cache.data.extremes || []).length;
-        const hasFuture = hasFutureExtremes(cache.data);
-        console.log('[tides] cache exists — age:', ageH + 'h, extremes:', extremesCount, 'hasFuture:', hasFuture);
-      } else {
-        console.log('[tides] no cache found');
-      }
-
-      // Simple age-based TTL: serve cache if within 12h
-      if (cache && (now - cache.timestamp < 43200000)) {
-        const ageH = Math.round((now - cache.timestamp) / 3600000 * 10) / 10;
-        console.log('[tides] cache HIT (age ' + ageH + 'h < 12h) — serving cached data');
-        renderTides(cache.data, stationId);
+    if (cache) {
+      const hasFuture = hasFutureExtremes(cache.data);
+      if ((hasFuture && now - cache.timestamp < 43200000)
+          || (!hasFuture && cooldown && now - cooldown.timestamp < 21600000)) {
+        if (sequence === fetchSequence) renderTides(cache.data);
         return;
       }
-
-      // Cache expired (>12h) or missing — fetch fresh
-      if (cache) {
-        const ageH = Math.round((now - cache.timestamp) / 3600000 * 10) / 10;
-        console.log('[tides] cache EXPIRED (age ' + ageH + 'h >= 12h) — fetching fresh');
-      } else {
-        console.log('[tides] no cache — fetching fresh');
-      }
-      fetch(`https://tidecheck.com/api/station/${stationId}/tides?datum=LAT&days=2`, {
-        headers: { 'X-API-Key': cfg.apiKey }
-      })
-        .then(r => {
-          console.log('[tides] fetch response status:', r.status);
-          return r.json().then(data => ({ status: r.status, data }));
-        })
-        .then(({ status, data }) => {
-          if (status !== 200) {
-            console.error('[tides] API returned non-200:', status, JSON.stringify(data).slice(0, 200));
-            if (cache) { console.log('[tides] serving stale cache as fallback'); renderTides(cache.data, stationId); }
-            else { tidesLoading.textContent = '▹ API ERROR ' + status; }
-            return;
-          }
-          console.log('[tides] fetch OK — extremes:', (data.extremes || []).length, 'hasFuture:', hasFutureExtremes(data));
-          chrome.storage.local.set({
-            [cacheKey]: { data, timestamp: now }
-          });
-
-          // If no future extremes, set 6h cooldown before retrying
-          if (!hasFutureExtremes(data)) {
-            console.log('[tides] no future extremes in response — setting 6h cooldown');
-            chrome.storage.local.set({
-              [cooldownKey]: { timestamp: now }
-            });
-          } else {
-            // Fresh future data — clear any stale cooldown
-            chrome.storage.local.remove(cooldownKey);
-          }
-
-          renderTides(data, stationId);
-        })
-        .catch(err => {
-          console.error('[tides] fetch exception:', err.message || err);
-          // Serve stale cache on fetch failure if we have one
-          if (cache) {
-            console.log('[tides] fetch failed, serving stale cache');
-            renderTides(cache.data, stationId);
-          } else {
-            tidesLoading.textContent = '▹ NETWORK ERROR';
-          }
-        });
-    });
-  }
-
-  function renderTides(data, stationId) {
-    const extremes = data.extremes || [];
-    const timeSeries = data.timeSeries || [];
-    const now = new Date();
-
-    if (!extremes.length) {
-      tidesLoading.textContent = '▹ NO TIDE DATA';
-      return;
     }
 
-    // Current state
+    try {
+      const { response, data } = await fetchJson(
+        `https://tidecheck.com/api/station/${encodeURIComponent(stationId)}/tides?datum=LAT&days=2`,
+        { headers: { 'X-API-Key': apiKey } }
+      );
+      if (!response.ok || !Array.isArray(data.extremes)) {
+        throw new Error(data?.error || 'HTTP ' + response.status);
+      }
+      await chrome.storage.local.set({ [cacheKey]: { data, timestamp: now } });
+      if (hasFutureExtremes(data)) {
+        await chrome.storage.local.remove(cooldownKey);
+      } else {
+        await chrome.storage.local.set({ [cooldownKey]: { timestamp: now } });
+      }
+      if (sequence === fetchSequence) renderTides(data);
+    } catch (error) {
+      console.error('Tide fetch failed:', error);
+      if (sequence !== fetchSequence) return;
+      if (cache) renderTides(cache.data);
+      else tidesLoading.textContent = '▹ TIDE DATA UNAVAILABLE';
+    }
+  }
+
+  function renderTides(data) {
+    const extremes = (Array.isArray(data.extremes) ? data.extremes : [])
+      .filter(extreme => validDate(extreme.time) && Number.isFinite(Number(extreme.height)));
+    const timeSeries = (Array.isArray(data.timeSeries) ? data.timeSeries : [])
+      .filter(point => validDate(point.time) && Number.isFinite(Number(point.height)))
+      .sort((a, b) => validDate(a.time) - validDate(b.time));
+    const now = new Date();
     let currentHeight = null;
     let trend = null;
 
     if (timeSeries.length >= 2) {
-      const sorted = [...timeSeries].sort((a, b) => a.time.localeCompare(b.time));
-      let best = null, bestDiff = Infinity;
-      for (const h of sorted) {
-        const diff = Math.abs(new Date(h.time) - now);
-        if (diff < bestDiff) { bestDiff = diff; best = h; }
+      let closest = null;
+      let closestDiff = Infinity;
+      for (const point of timeSeries) {
+        const diff = Math.abs(validDate(point.time) - now);
+        if (diff < closestDiff) {
+          closest = point;
+          closestDiff = diff;
+        }
       }
-      if (best) currentHeight = best.height;
+      if (closest && closestDiff <= 30 * 60 * 1000) currentHeight = Number(closest.height);
 
-      for (let i = 0; i < sorted.length - 1; i++) {
-        const t1 = new Date(sorted[i].time);
-        const t2 = new Date(sorted[i + 1].time);
-        if (t1 <= now && now <= t2) {
-          trend = sorted[i + 1].height > sorted[i].height ? 'RISING' : 'FALLING';
+      for (let index = 0; index < timeSeries.length - 1; index++) {
+        const first = validDate(timeSeries[index].time);
+        const second = validDate(timeSeries[index + 1].time);
+        if (first <= now && now <= second) {
+          trend = Number(timeSeries[index + 1].height) > Number(timeSeries[index].height)
+            ? 'RISING' : 'FALLING';
           break;
         }
       }
     }
 
-    // Current display
-    if (currentHeight !== null) {
-      tideNow.textContent = currentHeight.toFixed(2) + 'm';
-    } else {
-      // Fallback: use most recent extreme
-      let last = null;
-      for (const ex of extremes) {
-        const t = new Date(ex.time);
-        if (t <= now && (!last || t > new Date(last.time))) last = ex;
-      }
-      tideNow.textContent = last ? last.height.toFixed(2) + 'm' : '--';
-    }
-
+    tideNow.textContent = currentHeight === null ? '--' : currentHeight.toFixed(2) + 'm';
     tideTrend.textContent = trend || '--';
     tideTrend.style.color = trend === 'RISING'
-      ? 'var(--accent)'
-      : trend === 'FALLING'
-        ? 'var(--red)'
-        : 'var(--text-dim)';
-
-    // Hide the next high/low summary — table covers it
+      ? 'var(--accent)' : trend === 'FALLING' ? 'var(--red)' : 'var(--text-dim)';
     tidesDetail.style.display = 'none';
+    tideTable.replaceChildren();
 
-    // Table: only present and future tides (drop past)
-    const future = extremes.filter(e => new Date(e.time) >= now);
-
-    let tableHtml = '';
-    if (future.length) {
-      for (const ex of future) {
-        const t = new Date(ex.time);
-        const etype = (ex.type || '?').toUpperCase();
-        tableHtml += `<div class="tide-row">
-          <span class="tide-type">${etype}</span>
-          <span class="tide-time">${formatTideTime(t)}</span>
-          <span class="tide-h">${ex.height.toFixed(2)}m</span>
-        </div>`;
-      }
+    const future = extremes.filter(extreme => validDate(extreme.time) >= now);
+    if (!future.length) {
+      appendNoDataRow();
     } else {
-      tableHtml = '<div class="tide-row"><span class="no-data">NO DATA</span></div>';
+      future.forEach(extreme => {
+        const row = document.createElement('div');
+        row.className = 'tide-row';
+        row.append(
+          tideCell('tide-type', String(extreme.type || '?').toUpperCase()),
+          tideCell('tide-time', formatTideTime(extreme, data.station?.timezone)),
+          tideCell('tide-h', Number(extreme.height).toFixed(2) + 'm')
+        );
+        tideTable.appendChild(row);
+      });
     }
-    tideTable.innerHTML = tableHtml;
 
     tidesLoading.classList.add('hidden');
     tidesSection.classList.add('active');
   }
 
-  function formatTideTime(d) {
-    return String(d.getDate()).padStart(2, '0') + '/' +
-           String(d.getMonth() + 1).padStart(2, '0') + ' ' +
-           String(d.getHours()).padStart(2, '0') + ':' +
-           String(d.getMinutes()).padStart(2, '0');
+  function tideCell(className, text) {
+    const cell = document.createElement('span');
+    cell.className = className;
+    cell.textContent = text;
+    return cell;
   }
 
-  // React to settings changes
-  chrome.storage.onChanged.addListener(function (changes, namespace) {
-    if (namespace === 'sync' && changes.tides) {
-      console.log('[tides] settings changed, re-fetching');
+  function appendNoDataRow() {
+    const row = document.createElement('div');
+    row.className = 'tide-row';
+    row.appendChild(tideCell('no-data', 'NO UPCOMING TIDES'));
+    tideTable.appendChild(row);
+  }
+
+  function formatTideTime(extreme, timezone) {
+    const localMatch = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(extreme.localTime || '');
+    if (localMatch) return `${localMatch[3]}/${localMatch[2]} ${localMatch[4]}:${localMatch[5]}`;
+    const date = validDate(extreme.time);
+    if (!date) return '--';
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: timezone || undefined, day: '2-digit', month: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(date);
+    const get = type => parts.find(part => part.type === type)?.value || '--';
+    return `${get('day')}/${get('month')} ${get('hour')}:${get('minute')}`;
+  }
+
+  function normalizeStationId(value) {
+    const stationId = typeof value === 'string' ? value.trim() : '';
+    return stationId && stationId.length <= 200 ? stationId : null;
+  }
+
+  function validDate(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  async function fetchJson(url, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      return { response, data: await response.json() };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if ((namespace === 'sync' && changes.tides)
+        || (namespace === 'local' && changes.tidecheckApiKey)) {
       fetchTides();
     }
   });
 
-  // Periodically refresh tides while the tab is open (every 60 min)
-  setInterval(function () {
-    if (_stationId && _cfg && _cfg.show && _cfg.apiKey) {
-      console.log('[tides] periodic refresh triggered (60min interval)');
-      doFetchTides(_stationId, _cfg, _coords);
+  setInterval(() => {
+    if (currentStationId && currentConfig?.show && currentConfig.apiKey) {
+      loadStationTides(currentStationId, currentConfig.apiKey, fetchSequence);
     }
   }, 60 * 60 * 1000);
-  console.log('[tides] periodic refresh interval registered (60min)');
 
   fetchTides();
 })();

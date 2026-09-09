@@ -9,5 +9,16 @@
   "section_moon": "▸ MOON",
   "section_tides": "▸ TIDES",
   "section_feed": "▸ FEED",
-  "section_notes": "▸ NOTES"
+  "section_notes": "▸ NOTES",
+  "weather_clear": "Heldere hemel",
+  "weather_mainly_clear": "Overwegend helder",
+  "weather_partly_cloudy": "Gedeeltelijk bewolkt",
+  "weather_overcast": "Bewolkt",
+  "weather_fog": "Mist",
+  "weather_drizzle": "Motregen",
+  "weather_rain": "Regen",
+  "weather_snow": "Sneeuw",
+  "weather_showers": "Buien",
+  "weather_thunderstorm": "Onweer",
+  "weather_unknown": "Onbekend"
 }

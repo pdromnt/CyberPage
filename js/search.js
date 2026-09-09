@@ -1,11 +1,6 @@
 (function () {
   const searchInput = document.querySelector('.search-input');
 
-  // Default engines
-  const ENGINES = {
-    '': 'https://www.google.com/search?q=',
-  };
-
   const BANGS = {
     'g': 'https://www.google.com/search?q=',
     'gh': 'https://github.com/search?q=',
@@ -27,8 +22,9 @@
     const query = searchInput.value.trim();
     if (!query) return;
 
-    // Check for bang commands: prefix! rest
-    const bangMatch = query.match(/^([a-z]+)!?\s+(.+)/i);
+    // Accept the documented "gh/ query", plus "gh/query", "gh! query"
+    // and the legacy "gh query" forms.
+    const bangMatch = query.match(/^([a-z]+)(?:[!/]\s*|\s+)(.+)$/i);
     if (bangMatch) {
       const prefix = bangMatch[1].toLowerCase();
       const rest = bangMatch[2];

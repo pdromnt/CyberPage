@@ -9,5 +9,16 @@
   "section_moon": "▸ MOON",
   "section_tides": "▸ TIDES",
   "section_feed": "▸ FEED",
-  "section_notes": "▸ NOTES"
+  "section_notes": "▸ NOTES",
+  "weather_clear": "快晴",
+  "weather_mainly_clear": "ほぼ快晴",
+  "weather_partly_cloudy": "一部曇り",
+  "weather_overcast": "曇り",
+  "weather_fog": "霧",
+  "weather_drizzle": "霧雨",
+  "weather_rain": "雨",
+  "weather_snow": "雪",
+  "weather_showers": "にわか雨",
+  "weather_thunderstorm": "雷雨",
+  "weather_unknown": "不明"
 }

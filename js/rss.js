@@ -1,135 +1,151 @@
 (function () {
   const rssPanel = document.querySelector('#rss-panel');
-
-  // Default RSS feed config — user overrides via settings
   const DEFAULT_FEEDS = [];
+  const FETCH_TIMEOUT_MS = 12000;
+  const MAX_FEED_BYTES = 2 * 1024 * 1024;
+  let loadSequence = 0;
 
-  async function ensureFeedUARule() {
+  async function ensureFeedUARule(feeds) {
     try {
-      await chrome.runtime.sendMessage({ type: 'ensureFeedUA' });
+      const result = await chrome.runtime.sendMessage({ type: 'ensureFeedUA', feeds });
+      return result && result.ok;
     } catch (_) {
-      // service worker not registered yet — extension probably needs reload
+      return false;
     }
   }
 
   async function loadFeeds() {
-    await ensureFeedUARule();
-
-    const result = await new Promise(resolve =>
-      chrome.storage.sync.get({ rssFeeds: DEFAULT_FEEDS }, resolve)
-    );
-    const feeds = result.rssFeeds || [];
+    const sequence = ++loadSequence;
+    const result = await chrome.storage.sync.get({ rssFeeds: DEFAULT_FEEDS });
+    const feeds = (Array.isArray(result.rssFeeds) ? result.rssFeeds : [])
+      .filter(feed => feed && toSafeHttpUrl(feed.url));
 
     if (!feeds.length) {
       rssPanel.innerHTML = '<div class="no-data">▹ NO FEEDS CONFIGURED</div>';
       return;
     }
 
-    // Show loading
     rssPanel.innerHTML = '<div class="no-data">▹ FETCHING FEEDS...</div>';
-
-    // Fetch each feed
-    const results = await Promise.allSettled(feeds.map(f => fetchAndParse(f)));
-    renderFeeds(feeds, results);
+    await ensureFeedUARule(feeds);
+    const results = await Promise.allSettled(feeds.map(fetchAndParse));
+    if (sequence === loadSequence) renderFeeds(feeds, results);
   }
 
   async function fetchAndParse(feed) {
+    const feedUrl = toSafeHttpUrl(feed.url);
+    if (!feedUrl) return { error: 'INVALID URL' };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-      const response = await fetch(feed.url, { cache: 'no-cache' });
+      const response = await fetch(feedUrl, { cache: 'no-cache', signal: controller.signal });
+      if (!response.ok) return { error: `HTTP ${response.status}` };
+
+      const length = Number(response.headers.get('content-length'));
+      if (Number.isFinite(length) && length > MAX_FEED_BYTES) return { error: 'FEED TOO LARGE' };
+
       const text = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(text, 'application/xml');
+      if (text.length > MAX_FEED_BYTES) return { error: 'FEED TOO LARGE' };
 
-      // Check for parse errors
-      const errorNode = doc.querySelector('parsererror');
-      if (errorNode) {
-        return { error: 'PARSE ERROR', label: feed.label };
-      }
+      const doc = new DOMParser().parseFromString(text, 'application/xml');
+      if (doc.querySelector('parsererror')) return { error: 'PARSE ERROR' };
 
-      // RSS 2.0
       let items = doc.querySelectorAll('item');
-      // Atom
       if (!items.length) items = doc.querySelectorAll('entry');
 
       const parsed = [];
-      const maxItems = feed.maxItems || 6;
-
-      items.forEach((item, i) => {
-        if (i >= maxItems) return;
-
+      const maxItems = Math.min(20, Math.max(1, Number(feed.maxItems) || 6));
+      items.forEach((item, index) => {
+        if (index >= maxItems) return;
         const title = item.querySelector('title')?.textContent?.trim() || 'Untitled';
-        let link = '';
-        if (item.querySelector('link')) {
-          link = item.querySelector('link')?.textContent?.trim() || item.querySelector('link')?.getAttribute('href') || '';
-        }
-        const dateStr = item.querySelector('pubDate')?.textContent
+        const linkNode = item.querySelector('link');
+        const rawLink = linkNode?.textContent?.trim() || linkNode?.getAttribute('href') || '';
+        const link = toSafeHttpUrl(rawLink, feedUrl);
+        const date = item.querySelector('pubDate')?.textContent
           || item.querySelector('published')?.textContent
           || item.querySelector('updated')?.textContent
           || '';
-
-        parsed.push({ title, link, date: dateStr });
+        parsed.push({ title, link, date });
       });
 
-      return { items: parsed, label: feed.label };
-    } catch (e) {
-      return { error: 'FETCH FAILED', label: feed.label };
+      return { items: parsed };
+    } catch (error) {
+      return { error: error && error.name === 'AbortError' ? 'TIMED OUT' : 'FETCH FAILED' };
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
   function renderFeeds(feeds, results) {
-    if (!results.length) {
-      rssPanel.innerHTML = '<div class="no-data">▹ NO FEEDS</div>';
-      return;
-    }
-
-    let html = '';
-
-    results.forEach((result, i) => {
-      const feed = feeds[i];
+    rssPanel.replaceChildren();
+    results.forEach((result, index) => {
+      const feed = feeds[index];
       if (!feed) return;
 
-      html += `<div class="feed-block">`;
-      html += `<div class="feed-label">▹ ${escapeHtml(feed.label)}</div>`;
+      const block = document.createElement('div');
+      block.className = 'feed-block';
+      const label = document.createElement('div');
+      label.className = 'feed-label';
+      label.textContent = `▹ ${feed.label || 'FEED'}`;
+      block.appendChild(label);
 
       if (result.status === 'rejected' || result.value?.error) {
-        const err = result.value?.error || 'FETCH ERROR';
-        html += `<div class="no-data">${escapeHtml(err)}</div>`;
+        appendMessage(block, result.value?.error || 'FETCH ERROR');
       } else if (result.value?.items?.length) {
-        result.value.items.forEach(item => {
-          const dateStr = item.date
-            ? new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric' })
-            : '—';
-          html += `
-            <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" class="feed-item">
-              <span class="fi-time">${escapeHtml(dateStr)}</span>
-              <span class="fi-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>
-            </a>`;
-        });
+        result.value.items.forEach(item => block.appendChild(makeFeedItem(item)));
       } else {
-        html += '<div class="no-data">NO ITEMS</div>';
+        appendMessage(block, 'NO ITEMS');
       }
-
-      html += `</div>`;
+      rssPanel.appendChild(block);
     });
-
-    rssPanel.innerHTML = html;
   }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // Listen for storage changes (settings updates)
-  chrome.storage.onChanged.addListener(function (changes, namespace) {
-    if (namespace === 'sync' && changes.rssFeeds) {
-      loadFeeds();
+  function makeFeedItem(item) {
+    const element = document.createElement(item.link ? 'a' : 'div');
+    element.className = 'feed-item';
+    if (item.link) {
+      element.href = item.link;
+      element.target = '_blank';
+      element.rel = 'noopener';
     }
+
+    const time = document.createElement('span');
+    time.className = 'fi-time';
+    time.textContent = formatFeedDate(item.date);
+    const title = document.createElement('span');
+    title.className = 'fi-title';
+    title.textContent = item.title;
+    title.title = item.title;
+    element.append(time, title);
+    return element;
+  }
+
+  function appendMessage(parent, message) {
+    const element = document.createElement('div');
+    element.className = 'no-data';
+    element.textContent = message;
+    parent.appendChild(element);
+  }
+
+  function formatFeedDate(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? '—'
+      : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  function toSafeHttpUrl(value, base) {
+    try {
+      const url = new URL(String(value), base);
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.rssFeeds) loadFeeds();
   });
 
   loadFeeds();

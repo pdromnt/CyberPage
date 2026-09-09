@@ -9,5 +9,16 @@
   "section_moon": "▸ MOON",
   "section_tides": "▸ TIDES",
   "section_feed": "▸ FEED",
-  "section_notes": "▸ NOTES"
+  "section_notes": "▸ NOTES",
+  "weather_clear": "Clear sky",
+  "weather_mainly_clear": "Mainly clear",
+  "weather_partly_cloudy": "Partly cloudy",
+  "weather_overcast": "Overcast",
+  "weather_fog": "Fog",
+  "weather_drizzle": "Drizzle",
+  "weather_rain": "Rain",
+  "weather_snow": "Snow",
+  "weather_showers": "Showers",
+  "weather_thunderstorm": "Thunderstorm",
+  "weather_unknown": "Unknown"
 }

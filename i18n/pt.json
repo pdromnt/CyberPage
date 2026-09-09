@@ -9,5 +9,16 @@
   "section_moon": "▸ MOON",
   "section_tides": "▸ TIDES",
   "section_feed": "▸ FEED",
-  "section_notes": "▸ NOTES"
+  "section_notes": "▸ NOTES",
+  "weather_clear": "Céu limpo",
+  "weather_mainly_clear": "Predominantemente limpo",
+  "weather_partly_cloudy": "Parcialmente nublado",
+  "weather_overcast": "Nublado",
+  "weather_fog": "Nevoeiro",
+  "weather_drizzle": "Garoa",
+  "weather_rain": "Chuva",
+  "weather_snow": "Neve",
+  "weather_showers": "Pancadas de chuva",
+  "weather_thunderstorm": "Trovoada",
+  "weather_unknown": "Desconhecido"
 }

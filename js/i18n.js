@@ -38,6 +38,7 @@ const i18n = {
             const response = await fetch(`i18n/${lang}.json`);
             this.translations = await response.json();
             this.currentLanguage = lang;
+            document.documentElement.lang = lang;
             this.applyTranslations();
         } catch (e) {
             console.error(`Failed to load language: ${lang}`, e);
@@ -74,3 +75,9 @@ const i18n = {
         return this.translations[key] || key;
     }
 };
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.language && i18n.isInitialized) {
+        i18n.loadLanguage(changes.language.newValue || 'en');
+    }
+});

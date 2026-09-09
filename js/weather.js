@@ -7,8 +7,6 @@
   const humEl = document.querySelector('#weather-hum');
   const windEl = document.querySelector('#weather-wind');
   const locEl = document.querySelector('#weather-loc');
-
-  // Moon elements
   const moonSection = document.querySelector('#moon-section');
   const moonIconEl = document.querySelector('#moon-icon');
   const moonPhaseEl = document.querySelector('#moon-phase');
@@ -16,18 +14,7 @@
   const moonRiseEl = document.querySelector('#moon-rise');
   const moonSetEl = document.querySelector('#moon-set');
   const moonStatusEl = document.querySelector('#moon-status');
-
-  const ICON_MAP = {
-    '01d': '☀', '01n': '☾',
-    '02d': '⛅', '02n': '⛅',
-    '03d': '☁', '03n': '☁',
-    '04d': '☁', '04n': '☁',
-    '09d': '🌧', '09n': '🌧',
-    '10d': '🌦', '10n': '🌧',
-    '11d': '⛈', '11n': '⛈',
-    '13d': '❄', '13n': '❄',
-    '50d': '🌫', '50n': '🌫',
-  };
+  let fetchSequence = 0;
 
   const MOON_PHASE_ICONS = {
     'New Moon': '🌑',
@@ -40,346 +27,289 @@
     'Waning Crescent': '🌘',
   };
 
-  function tryGeocode(queries, idx, apiKey, resolve) {
-    if (idx >= queries.length) {
-      resolve({ error: 'GEO_NOT_FOUND: ' + queries[0] });
+  async function resolveLocation(cfg, lang) {
+    if (cfg.location && cfg.location.trim()) {
+      return geocodeLocation(cfg.location.trim(), lang);
+    }
+    if (!navigator.geolocation) return { error: 'NO_GEOLOCATION' };
+
+    return new Promise(resolve => {
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, name: null }),
+        () => resolve({ error: 'GEO_DENIED' }),
+        { enableHighAccuracy: false, timeout: 10000 }
+      );
+    });
+  }
+
+  async function geocodeLocation(raw, lang) {
+    const parts = raw.split(',').map(part => part.trim()).filter(Boolean);
+    const name = parts[0];
+    const qualifier = parts.at(-1)?.toLowerCase();
+    const url = 'https://geocoding-api.open-meteo.com/v1/search?name='
+      + encodeURIComponent(name) + '&count=10&format=json&language=' + encodeURIComponent(lang);
+
+    try {
+      const { response, data } = await fetchJson(url);
+      if (!response.ok) return { error: 'GEO_LOOKUP_FAILED' };
+      const results = Array.isArray(data.results) ? data.results : [];
+      const match = results.find(result => {
+        if (parts.length < 2) return true;
+        return [result.country_code, result.country, result.admin1]
+          .some(value => String(value || '').toLowerCase() === qualifier);
+      }) || results[0];
+      if (!match) return { error: 'GEO_NOT_FOUND: ' + raw };
+      return {
+        lat: match.latitude,
+        lon: match.longitude,
+        name: [match.name, match.admin1 || match.country_code].filter(Boolean).join(', '),
+        timezone: match.timezone
+      };
+    } catch (_) {
+      return { error: 'GEO_LOOKUP_FAILED' };
+    }
+  }
+
+  async function fetchWeather() {
+    const sequence = ++fetchSequence;
+    await i18n.init();
+    const result = await chrome.storage.sync.get({ weather: {} });
+    const cfg = result.weather || {};
+
+    if (!cfg.show) {
+      weatherWidget.classList.remove('active');
+      weatherLoading.classList.add('hidden');
+      moonSection.classList.remove('active');
       return;
     }
 
-    const q = queries[idx];
-    fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=1&appid=${apiKey}`)
-      .then(r => r.json().then(data => ({ status: r.status, data })))
-      .then((response) => {
-        if (response.status !== 200) {
-          tryGeocode(queries, idx + 1, apiKey, resolve);
-        } else if (response.data && response.data.length > 0) {
-          resolve({ lat: response.data[0].lat, lon: response.data[0].lon, name: queries[0] });
-        } else {
-          tryGeocode(queries, idx + 1, apiKey, resolve);
-        }
-      })
-      .catch(() => tryGeocode(queries, idx + 1, apiKey, resolve));
-  }
+    weatherWidget.classList.remove('active');
+    moonSection.classList.remove('active');
+    weatherLoading.classList.remove('hidden');
+    weatherLoading.textContent = '▹ SYNCING...';
 
-  function resolveLocation(cfg) {
-    return new Promise((resolve) => {
-      if (cfg.location) {
-        const apiKey = cfg.apiKey;
-        if (!apiKey) { resolve({ error: 'NO_API_KEY' }); return; }
+    const lang = i18n.currentLanguage || 'en';
+    const locCacheKey = cfg.location
+      ? `weather_loc_${cfg.location.trim().toLowerCase()}`
+      : 'weather_loc_geo';
+    const locCache = await chrome.storage.local.get([locCacheKey]);
+    let loc = locCache[locCacheKey];
 
-        // Build fallback queries: "Recife, PE" → try "Recife", then "Recife,BR"
-        const raw = cfg.location.trim();
-        const queries = [raw];
-        const commaIdx = raw.indexOf(',');
-        if (commaIdx > 0) {
-          queries.push(raw.substring(0, commaIdx).trim());
-        }
-        if (!raw.match(/,\s*[A-Z]{2}$/)) {
-          queries.push((commaIdx > 0 ? raw.substring(0, commaIdx).trim() : raw) + ',BR');
-        }
-
-        tryGeocode(queries, 0, apiKey, resolve);
-      } else {
-        if (!navigator.geolocation) { resolve({ error: 'NO_GEOLOCATION' }); return; }
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, name: null }),
-          err => resolve({ error: 'GEO_DENIED' }),
-          { enableHighAccuracy: false, timeout: 10000 }
-        );
-      }
-    });
-  }
-
-  function fetchWeather() {
-    chrome.storage.sync.get({ weather: {} }, async function (result) {
-      const cfg = result.weather;
-      if (!cfg.show) {
-        weatherLoading.classList.add('hidden');
-        moonSection.classList.remove('active');
-        return;
-      }
-
-      if (!cfg.apiKey) {
-        weatherLoading.textContent = '▹ API KEY REQUIRED';
-        weatherLoading.classList.remove('hidden');
-        return;
-      }
-
-      weatherLoading.classList.remove('hidden');
-      weatherLoading.textContent = '▹ SYNCING...';
-
-      // Check/cache resolved location (24h TTL)
-      const locCacheKey = cfg.location
-        ? `weather_loc_${cfg.location.trim().toLowerCase()}`
-        : 'weather_loc_geo';
-
-      const loc = await new Promise((resolve) => {
-        chrome.storage.local.get([locCacheKey], function (cacheResult) {
-          const cached = cacheResult[locCacheKey];
-          if (cached && (Date.now() - cached.timestamp < 86400000)) {
-            resolve({ lat: cached.lat, lon: cached.lon, name: cached.name });
-            return;
-          }
-          // No cache — geocode/geolocate
-          resolveLocation(cfg).then(resolve);
-        });
-      });
-
+    if (!loc || Date.now() - loc.timestamp >= 86400000) {
+      loc = await resolveLocation(cfg, lang);
       if (loc.error) {
-        weatherLoading.textContent = '▹ ' + loc.error;
+        if (sequence === fetchSequence) weatherLoading.textContent = '▹ ' + loc.error;
         return;
       }
+      loc.timestamp = Date.now();
+      await chrome.storage.local.set({ [locCacheKey]: loc });
+    }
+    if (sequence !== fetchSequence) return;
 
-      // Cache the location result
-      if (!loc.error) {
-        chrome.storage.local.set({
-          [locCacheKey]: { lat: loc.lat, lon: loc.lon, name: loc.name, timestamp: Date.now() }
-        });
-      }
+    const units = cfg.units === 'imperial' ? 'imperial' : 'metric';
+    const cacheKey = `weather_${loc.lat.toFixed(2)}_${loc.lon.toFixed(2)}_${units}_${lang}`;
+    const cacheResult = await chrome.storage.local.get([cacheKey]);
+    const cache = cacheResult[cacheKey];
+    if (cache && Date.now() - cache.timestamp < 600000) {
+      renderWeather(cache.data, loc.name, units);
+      fetchMoon(loc.lat, loc.lon, cache.data.timezone || loc.timezone, sequence);
+      return;
+    }
 
-      const units = cfg.units || 'metric';
-      const lang = (typeof i18n !== 'undefined' && i18n.currentLanguage) ? i18n.currentLanguage : 'en';
-
-      const cacheKey = `weather_${loc.lat.toFixed(2)}_${loc.lon.toFixed(2)}_${units}`;
-      chrome.storage.local.get([cacheKey], function (cacheResult) {
-        const cache = cacheResult[cacheKey];
-        const now = Date.now();
-
-        if (cache && (now - cache.timestamp < 600000)) {
-          renderWeather(cache.data, loc.name, units);
-          fetchMoon(loc.lat, loc.lon, loc.name);
-          return;
-        }
-
-        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${loc.lat}&lon=${loc.lon}&units=${units}&lang=${lang}&appid=${cfg.apiKey}`)
-          .then(r => r.json().then(data => ({ status: r.status, data })))
-          .then((response) => {
-            if (response.data.cod !== 200) {
-              weatherLoading.textContent = '▹ API: ' + (response.data.message || response.status);
-              return;
-            }
-
-            chrome.storage.local.set({
-              [cacheKey]: { data: response.data, timestamp: now }
-            });
-
-            renderWeather(response.data, loc.name, units);
-            fetchMoon(loc.lat, loc.lon, loc.name);
-          })
-          .catch(err => {
-            console.error('Weather fetch error:', err);
-            weatherLoading.textContent = '▹ NETWORK ERROR';
-          });
-      });
+    const params = new URLSearchParams({
+      latitude: loc.lat,
+      longitude: loc.lon,
+      current: 'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day',
+      temperature_unit: units === 'imperial' ? 'fahrenheit' : 'celsius',
+      wind_speed_unit: units === 'imperial' ? 'mph' : 'ms',
+      timezone: 'auto'
     });
+
+    try {
+      const { response, data } = await fetchJson('https://api.open-meteo.com/v1/forecast?' + params);
+      if (!response.ok || data.error || !data.current) {
+        throw new Error(data.reason || 'unexpected response');
+      }
+      if (sequence !== fetchSequence) return;
+      await chrome.storage.local.set({ [cacheKey]: { data, timestamp: Date.now() } });
+      renderWeather(data, loc.name, units);
+      fetchMoon(loc.lat, loc.lon, data.timezone || loc.timezone, sequence);
+    } catch (error) {
+      console.error('Weather fetch error:', error);
+      if (sequence === fetchSequence) weatherLoading.textContent = '▹ NETWORK ERROR';
+    }
   }
 
   function renderWeather(data, locationName, units) {
-    const iconCode = data.weather[0].icon;
-    const icon = ICON_MAP[iconCode] || '◆';
-
-    iconEl.textContent = icon;
-    tempEl.innerHTML = Math.round(data.main.temp) + '&deg;' + (units === 'metric' ? 'C' : 'F');
-    condEl.textContent = data.weather[0].description;
-    humEl.textContent = data.main.humidity + '%';
-    windEl.textContent = (data.wind.speed || 0) + (units === 'metric' ? ' m/s' : ' mph');
-
-    if (locationName) {
-      locEl.textContent = locationName;
-    } else if (data.name) {
-      const country = data.sys.country || '';
-      locEl.textContent = country ? data.name + ', ' + country : data.name;
-    }
-
+    const current = data.current;
+    iconEl.textContent = weatherIcon(current.weather_code, current.is_day);
+    tempEl.textContent = Math.round(current.temperature_2m) + '°' + (units === 'metric' ? 'C' : 'F');
+    condEl.textContent = i18n.t(weatherDescriptionKey(current.weather_code));
+    humEl.textContent = Math.round(current.relative_humidity_2m) + '%';
+    windEl.textContent = current.wind_speed_10m + (units === 'metric' ? ' m/s' : ' mph');
+    locEl.textContent = locationName || [data.latitude.toFixed(2), data.longitude.toFixed(2)].join(', ');
     weatherLoading.classList.add('hidden');
     weatherWidget.classList.add('active');
   }
 
-  // ── Moon phase ──────────────────────────────────────
-  function fetchMoon(lat, lon, locationName) {
-    const cacheKey = `moon_${lat.toFixed(2)}_${lon.toFixed(2)}`;
-    chrome.storage.local.get([cacheKey], function (cacheResult) {
-      const cache = cacheResult[cacheKey];
-      const now = Date.now();
+  function weatherIcon(code, isDay) {
+    if (code === 0) return isDay ? '☀' : '☾';
+    if (code <= 2) return '⛅';
+    if (code === 3) return '☁';
+    if (code === 45 || code === 48) return '🌫';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return '❄';
+    if (code >= 95) return '⛈';
+    return code >= 51 ? '🌧' : '◆';
+  }
 
-      if (cache && (now - cache.timestamp < 7200000)) {
-        renderMoon(cache.data);
-        return;
+  function weatherDescriptionKey(code) {
+    if (code === 0) return 'weather_clear';
+    if (code === 1) return 'weather_mainly_clear';
+    if (code === 2) return 'weather_partly_cloudy';
+    if (code === 3) return 'weather_overcast';
+    if (code === 45 || code === 48) return 'weather_fog';
+    if ([51, 53, 55, 56, 57].includes(code)) return 'weather_drizzle';
+    if ([61, 63, 65, 66, 67].includes(code)) return 'weather_rain';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return 'weather_snow';
+    if ([80, 81, 82].includes(code)) return 'weather_showers';
+    if (code >= 95) return 'weather_thunderstorm';
+    return 'weather_unknown';
+  }
+
+  async function fetchMoon(lat, lon, timezone, sequence) {
+    const zone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const today = dateInZone(new Date(), zone);
+    const cacheKey = `moon_${lat.toFixed(2)}_${lon.toFixed(2)}_${today}`;
+    const cacheResult = await chrome.storage.local.get([cacheKey]);
+    const cache = cacheResult[cacheKey];
+    if (cache && Date.now() - cache.timestamp < 7200000) {
+      if (sequence === fetchSequence) renderMoon(cache.data);
+      return;
+    }
+
+    try {
+      const moonData = await requestMoonDay(lat, lon, today, zone);
+      if (moonData.rise === '--') {
+        const yesterday = shiftIsoDate(today, -1);
+        const previous = await requestMoonDay(lat, lon, yesterday, zone);
+        if (previous.rise !== '--') {
+          moonData.rise = previous.rise;
+          moonData.riseFromYesterday = true;
+        }
       }
-
-      // Get browser's local timezone offset (minutes east of UTC = -getTimezoneOffset)
-      const tzOffset = -new Date().getTimezoneOffset() / 60;
-      const tzStr = tzOffset.toFixed(1);
-
-      // Format today's date in YYYY-MM-DD
-      const today = new Date();
-      const dateStr = today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-
-      const url = 'https://aa.usno.navy.mil/api/rstt/oneday?date=' + dateStr +
-        '&coords=' + lat.toFixed(4) + ',' + lon.toFixed(4) +
-        '&tz=' + tzStr;
-
-      fetch(url)
-        .then(r => r.json())
-        .then(data => {
-          if (!data || !data.properties || !data.properties.data) {
-            console.warn('Moon API: unexpected response', data);
-            return;
-          }
-
-          const d = data.properties.data;
-          const rise = findMoonEvent(d.moondata, 'Rise');
-          const set = findMoonEvent(d.moondata, 'Set');
-          const moonData = {
-            phase: d.curphase || 'Unknown',
-            illum: d.fracillum || '--',
-            rise: rise,
-            set: set,
-            fetchedDate: dateStr,
-            riseFromYesterday: false,
-          };
-
-          // If rise is missing (moon rose before today), try yesterday's data
-          if (rise === '--') {
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.getFullYear() + '-' +
-              String(yesterday.getMonth() + 1).padStart(2, '0') + '-' +
-              String(yesterday.getDate()).padStart(2, '0');
-            const yesterdayCacheKey = `moon_${lat.toFixed(2)}_${lon.toFixed(2)}_${yesterdayStr}`;
-
-            chrome.storage.local.get([yesterdayCacheKey], function (ycache) {
-              const yesterdayRise = ycache[yesterdayCacheKey];
-              if (yesterdayRise && yesterdayRise.rise) {
-                moonData.rise = yesterdayRise.rise;
-                moonData.riseFromYesterday = true;
-                chrome.storage.local.set({
-                  [cacheKey]: { data: moonData, timestamp: now }
-                });
-                renderMoon(moonData);
-              } else {
-                // Fetch yesterday's data for the rise time
-                const yesterdayUrl = 'https://aa.usno.navy.mil/api/rstt/oneday?date=' + yesterdayStr +
-                  '&coords=' + lat.toFixed(4) + ',' + lon.toFixed(4) +
-                  '&tz=' + tzStr;
-                fetch(yesterdayUrl)
-                  .then(r => r.json())
-                  .then(yData => {
-                    const yd = yData.properties?.data;
-                    const yRise = findMoonEvent(yd?.moondata, 'Rise');
-                    moonData.rise = yRise;
-                    moonData.riseFromYesterday = true;
-                    // Cache yesterday's rise for future use
-                    chrome.storage.local.set({
-                      [yesterdayCacheKey]: { rise: yRise, timestamp: now },
-                      [cacheKey]: { data: moonData, timestamp: now }
-                    });
-                    renderMoon(moonData);
-                  })
-                  .catch(() => {
-                    // Fallback: save with whatever we have
-                    chrome.storage.local.set({
-                      [cacheKey]: { data: moonData, timestamp: now }
-                    });
-                    renderMoon(moonData);
-                  });
-              }
-            });
-          } else {
-            chrome.storage.local.set({
-              [cacheKey]: { data: moonData, timestamp: now }
-            });
-            renderMoon(moonData);
-          }
-        })
-        .catch(err => {
-          console.error('Moon fetch error:', err);
-        });
-    });
+      await chrome.storage.local.set({ [cacheKey]: { data: moonData, timestamp: Date.now() } });
+      if (sequence === fetchSequence) renderMoon(moonData);
+    } catch (error) {
+      console.error('Moon fetch error:', error);
+    }
   }
 
-  function findMoonEvent(moondata, phen) {
-    if (!moondata) return '--';
-    const event = moondata.find(e => e.phen === phen);
-    return event ? event.time : '--';
+  async function requestMoonDay(lat, lon, date, timezone) {
+    const offset = timezoneOffsetHours(date, timezone).toFixed(1);
+    const url = 'https://aa.usno.navy.mil/api/rstt/oneday?date=' + date
+      + '&coords=' + lat.toFixed(4) + ',' + lon.toFixed(4) + '&tz=' + offset;
+    const { response, data } = await fetchJson(url);
+    if (!response.ok) throw new Error('Moon API HTTP ' + response.status);
+    const details = data?.properties?.data;
+    if (!details) throw new Error('Moon API returned an unexpected response');
+    return {
+      phase: details.curphase || 'Unknown',
+      illum: details.fracillum || '--',
+      rise: findMoonEvent(details.moondata, 'Rise'),
+      set: findMoonEvent(details.moondata, 'Set'),
+      fetchedDate: date,
+      riseFromYesterday: false,
+      timezone
+    };
   }
 
-  function parseTimeToMinutes(timeStr) {
-    if (!timeStr || timeStr === '--' || timeStr === '....' || timeStr === 'null') return null;
-    const parts = timeStr.split(':');
-    if (parts.length < 2) return null;
-    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-  }
-
-  function isMoonVisible(riseTime, setTime) {
-    const riseMin = parseTimeToMinutes(riseTime);
-    const setMin = parseTimeToMinutes(setTime);
-
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-
-    // Both available: standard logic
-    if (riseMin !== null && setMin !== null) {
-      if (riseMin < setMin) {
-        return (nowMin >= riseMin && nowMin < setMin) ? 'VISIBLE ↑' : 'BELOW HORIZON';
-      } else {
-        return (nowMin >= riseMin || nowMin < setMin) ? 'VISIBLE ↑' : 'BELOW HORIZON';
-      }
-    }
-
-    // Moon rose before today (no rise event) — use set time alone
-    if (riseMin === null && setMin !== null) {
-      return nowMin < setMin ? 'VISIBLE ↑' : 'BELOW HORIZON';
-    }
-
-    // Moon sets after midnight (no set event today) — use rise time alone
-    if (riseMin !== null && setMin === null) {
-      return nowMin >= riseMin ? 'VISIBLE ↑' : 'BELOW HORIZON';
-    }
-
-    return 'UNKNOWN';
+  function findMoonEvent(events, phenomenon) {
+    const event = Array.isArray(events) ? events.find(item => item.phen === phenomenon) : null;
+    return event?.time || '--';
   }
 
   function renderMoon(data) {
-    const icon = MOON_PHASE_ICONS[data.phase] || '🌙';
-    const visible = isMoonVisible(data.rise, data.set);
-
-    const today = new Date();
-    const todayStr = today.getFullYear() + '-' +
-      String(today.getMonth() + 1).padStart(2, '0') + '-' +
-      String(today.getDate()).padStart(2, '0');
-    const setLabel = data.fetchedDate === todayStr ? 'Today' : data.fetchedDate || '';
+    const visible = isMoonVisible(data.rise, data.set, data.timezone);
+    const today = dateInZone(new Date(), data.timezone);
+    const setLabel = data.fetchedDate === today ? 'Today' : data.fetchedDate || '';
     const riseLabel = data.riseFromYesterday ? 'Yesterday' : setLabel;
-
-    moonIconEl.textContent = icon;
+    moonIconEl.textContent = MOON_PHASE_ICONS[data.phase] || '🌙';
     moonPhaseEl.textContent = data.phase;
     moonIllumEl.textContent = data.illum;
-    moonRiseEl.textContent = data.rise !== '--'
-      ? riseLabel + ' ' + data.rise
-      : data.rise;
-    moonSetEl.textContent = data.set !== '--'
-      ? setLabel + ' ' + data.set
-      : data.set;
+    moonRiseEl.textContent = data.rise !== '--' ? riseLabel + ' ' + data.rise : data.rise;
+    moonSetEl.textContent = data.set !== '--' ? setLabel + ' ' + data.set : data.set;
     moonStatusEl.textContent = visible;
-
-    // Color the status based on visibility
-    if (visible.includes('VISIBLE')) {
-      moonStatusEl.style.color = 'var(--accent)';
-    } else if (visible === 'BELOW HORIZON') {
-      moonStatusEl.style.color = 'var(--text-dim)';
-    } else {
-      moonStatusEl.style.color = 'var(--red)';
-    }
-
+    moonStatusEl.style.color = visible.includes('VISIBLE')
+      ? 'var(--accent)'
+      : visible === 'BELOW HORIZON' ? 'var(--text-dim)' : 'var(--red)';
     moonSection.classList.add('active');
   }
 
-  chrome.storage.onChanged.addListener(function (changes, namespace) {
-    if (namespace === 'sync' && changes.weather) {
-      fetchWeather();
+  function isMoonVisible(riseTime, setTime, timezone) {
+    const rise = timeToMinutes(riseTime);
+    const set = timeToMinutes(setTime);
+    const parts = timePartsInZone(new Date(), timezone);
+    const now = parts.hour * 60 + parts.minute;
+    if (rise !== null && set !== null) {
+      return (rise < set ? now >= rise && now < set : now >= rise || now < set)
+        ? 'VISIBLE ↑' : 'BELOW HORIZON';
     }
+    if (rise === null && set !== null) return now < set ? 'VISIBLE ↑' : 'BELOW HORIZON';
+    if (rise !== null && set === null) return now >= rise ? 'VISIBLE ↑' : 'BELOW HORIZON';
+    return 'UNKNOWN';
+  }
+
+  function timeToMinutes(value) {
+    const match = /^(\d{1,2}):(\d{2})/.exec(value || '');
+    return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+  }
+
+  function dateInZone(date, timezone) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(date);
+    const get = type => parts.find(part => part.type === type).value;
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  }
+
+  function timePartsInZone(date, timezone) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(date);
+    const get = type => Number(parts.find(part => part.type === type).value);
+    return { hour: get('hour'), minute: get('minute') };
+  }
+
+  function timezoneOffsetHours(dateString, timezone) {
+    const noonUtc = new Date(dateString + 'T12:00:00Z');
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    }).formatToParts(noonUtc);
+    const get = type => Number(parts.find(part => part.type === type).value);
+    const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+    return (asUtc - noonUtc.getTime()) / 3600000;
+  }
+
+  function shiftIsoDate(dateString, days) {
+    const date = new Date(dateString + 'T12:00:00Z');
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  async function fetchJson(url, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      return { response, data: await response.json() };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.weather) fetchWeather();
   });
 
   fetchWeather();

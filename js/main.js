@@ -2,31 +2,8 @@
   const timeDisplay = document.querySelector('#time');
   const dateDisplay = document.querySelector('#date');
   const greetingDisplay = document.querySelector('#greeting');
-  const topbarClock = document.querySelector('#topbar-clock');
 
-  const TICKER_MESSAGES = [
-    'PATTERN ANALYSIS: NORMAL',
-    'ANGEL DETECTION: NEGATIVE',
-    'MAGI CONSENSUS: 98.7%',
-    'SYNCH RATE: NOMINAL',
-    'BIOCOMPUTER STATUS: STABLE',
-    'LCL LINK: SECURE',
-    'NEURAL HANDSHAKE: CONFIRMED',
-    'PLUG DEPTH: 1.0',
-    'AT-FIELD: INACTIVE',
-    'THREAT LEVEL: ZERO',
-  ];
-
-  let tickerIdx = 0;
   let dateFormat = 'locale';
-  const tickerEl = document.querySelector('#ticker');
-
-  function updateTicker() {
-    tickerIdx = (tickerIdx + 1) % TICKER_MESSAGES.length;
-    tickerEl.textContent = TICKER_MESSAGES[tickerIdx];
-  }
-  updateTicker();
-  setInterval(updateTicker, 6000);
 
   // Load date format preference
   chrome.storage.sync.get({ dateFormat: 'locale' }, function (result) {
@@ -70,7 +47,6 @@
     timeDisplay.textContent = timeStr;
     dateDisplay.textContent = dateStr;
     greetingDisplay.textContent = greeting;
-    topbarClock.textContent = timeStr;
     document.title = '..::' + greeting.toUpperCase();
   }
 
